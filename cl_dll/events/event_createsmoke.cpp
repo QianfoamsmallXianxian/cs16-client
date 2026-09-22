@@ -35,6 +35,10 @@
 // spread radius (units) for the initial burst clouds
 #define SMOKE_SPREAD 280.0f
 
+// lifetime of a cloud, and when it starts to fade out
+#define SMOKE_LIFETIME 42.0f
+#define SMOKE_FADE_START 22.0f
+
 void EV_CreateSmoke(event_args_s *args)
 {
 	TEMPENTITY *pTemp;
@@ -47,6 +51,7 @@ void EV_CreateSmoke(event_args_s *args)
 			return;
 
 		int frameMax = max( 0, pGasModel->numframes - 1 );
+		float now = gEngfuncs.GetClientTime();
 
 		for( int i = 0; i < SMOKE_CLOUDS; i++ )
 		{
@@ -63,13 +68,20 @@ void EV_CreateSmoke(event_args_s *args)
 			{
 				pTemp->flags |= (FTENT_SPRANIMATELOOP | FTENT_COLLIDEWORLD | FTENT_CLIENTCUSTOM | FTENT_PERSIST);
 				pTemp->flags &= ~(FTENT_NOMODEL);
-				pTemp->die = gEngfuncs.GetClientTime() + 42.0f;
+				pTemp->die = now + SMOKE_LIFETIME;
 				pTemp->callback = [](struct tempent_s *te, float frametime, float currenttime) -> void
 				{
+					// fuser1 = initial alpha, fuser2 = fade rate (alpha/sec),
+					// fuser3 = time when fading starts, fuser4 = creation time
 					if( te->entity.curstate.renderamt > 0 && currenttime >= te->entity.curstate.fuser3 )
 					{
-						te->entity.curstate.renderamt = 255.0f - (currenttime - te->entity.curstate.fuser3) * te->entity.baseline.renderamt;
-						if( te->entity.curstate.renderamt < 0 ) te->entity.curstate.renderamt = 0;
+						float amt = te->entity.curstate.fuser1
+						          - ( currenttime - te->entity.curstate.fuser3 ) * te->entity.curstate.fuser2;
+
+						if( amt < 0.0f )
+							amt = 0.0f;
+
+						te->entity.curstate.renderamt = (int)amt;
 					}
 					EV_CS16Client_KillEveryRound( te, frametime, currenttime );
 				};
@@ -77,11 +89,16 @@ void EV_CreateSmoke(event_args_s *args)
 				pTemp->entity.model = (struct model_s*)pGasModel;
 				pTemp->frameMax = frameMax;
 
-				pTemp->entity.curstate.fuser3 = gEngfuncs.GetClientTime() + 22.0f;
-				pTemp->entity.curstate.fuser4 = gEngfuncs.GetClientTime();
+				float alpha = (float)Com_RandomLong( 110, 165 );
+				float fadeWindow = SMOKE_LIFETIME - SMOKE_FADE_START;
+
+				pTemp->entity.curstate.fuser1 = alpha;                       // initial alpha
+				pTemp->entity.curstate.fuser2 = alpha / fadeWindow;           // fade rate per second
+				pTemp->entity.curstate.fuser3 = now + SMOKE_FADE_START;       // fade start time
+				pTemp->entity.curstate.fuser4 = now;                          // creation time
 
 				pTemp->entity.curstate.rendermode = kRenderTransAdd;
-				pTemp->entity.curstate.renderamt = Com_RandomLong( 110, 165 );
+				pTemp->entity.curstate.renderamt = (int)alpha;
 				// darker grey smoke (not so white)
 				pTemp->entity.curstate.rendercolor.r = Com_RandomLong( 95, 140 );
 				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( 95, 140 );
@@ -91,11 +108,11 @@ void EV_CreateSmoke(event_args_s *args)
 
 				pTemp->entity.baseline.origin.x = Com_RandomLong(-7, 7);
 				pTemp->entity.baseline.origin.y = Com_RandomLong(-7, 7);
-				pTemp->entity.baseline.renderamt = 11;
 
 				if( i == 0 )
 				{
-					gHUD.m_Spectator.AddOverviewEntityToList( gHUD.m_hGasPuff, &pTemp->entity, 14.0f );
+					// killTime must be an absolute client time, not a duration
+					gHUD.m_Spectator.AddOverviewEntityToList( gHUD.m_hGasPuff, &pTemp->entity, now + 14.0f );
 				}
 			}
 		}
