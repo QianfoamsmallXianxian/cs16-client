@@ -12,6 +12,7 @@
 #include "pm_materials.h"
 #include <math.h>
 #include <string.h>
+#include "ev_blood_fx.h"
 
 #ifndef CS16_IMPACT_FX_ON
 #define CS16_IMPACT_FX_ON 1
@@ -545,6 +546,7 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 			return;
 
 		ImpactEmitBlood( pos, normal );
+		ImpactEmitBloodHeavy( pos, normal );
 		return;
 	}
 
