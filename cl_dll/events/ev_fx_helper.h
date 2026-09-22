@@ -97,7 +97,7 @@ inline TEMPENTITY *CreateSpriteFx( const SpriteFxParams &p )
 		te->callback = FxDefaultCallback;
 	}
 
-	te->flags |= flags;
+	te->flags |= flags | FTENT_PERSIST;
 
 	float life = ( p.life > 0.0f ) ? p.life : 0.5f;
 	te->die = gEngfuncs.GetClientTime() + life;

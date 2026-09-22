@@ -13,19 +13,19 @@
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_PUFFS_FP
-#define CS16_MUZZLE_SMOKE_PUFFS_FP 7
+#define CS16_MUZZLE_SMOKE_PUFFS_FP 9
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_PUFFS_TP
-#define CS16_MUZZLE_SMOKE_PUFFS_TP 5
+#define CS16_MUZZLE_SMOKE_PUFFS_TP 6
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MIN
-#define CS16_MUZZLE_SMOKE_GRAY_MIN 48
+#define CS16_MUZZLE_SMOKE_GRAY_MIN 60
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MAX
-#define CS16_MUZZLE_SMOKE_GRAY_MAX 108
+#define CS16_MUZZLE_SMOKE_GRAY_MAX 150
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_DRIFT
@@ -102,17 +102,17 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	te->entity.curstate.rendercolor.r = (unsigned char)gray;
 	te->entity.curstate.rendercolor.g = (unsigned char)gray;
 	te->entity.curstate.rendercolor.b = (unsigned char)gray;
-	te->entity.curstate.renderamt = 145 + ( gray & 0x3F );
+	te->entity.curstate.renderamt = 165 + ( gray & 0x5F );
 	te->entity.curstate.scale = scale;
 
 	Vector drift;
-	drift.x = forward.x * 11.0f + velocity.x * CS16_MUZZLE_SMOKE_DRIFT;
-	drift.y = forward.y * 11.0f + velocity.y * CS16_MUZZLE_SMOKE_DRIFT;
-	drift.z = forward.z * 4.0f + velocity.z * CS16_MUZZLE_SMOKE_DRIFT * 0.5f + CS16_MUZZLE_SMOKE_RISE;
+	drift.x = forward.x * 13.0f + velocity.x * CS16_MUZZLE_SMOKE_DRIFT;
+	drift.y = forward.y * 13.0f + velocity.y * CS16_MUZZLE_SMOKE_DRIFT;
+	drift.z = forward.z * 5.0f + velocity.z * CS16_MUZZLE_SMOKE_DRIFT * 0.5f + CS16_MUZZLE_SMOKE_RISE;
 
 	te->entity.baseline.origin = drift;
 
-	te->flags |= FTENT_CLIENTCUSTOM | FTENT_COLLIDEWORLD;
+	te->flags |= FTENT_CLIENTCUSTOM | FTENT_COLLIDEWORLD | FTENT_PERSIST;
 
 	if( wind )
 		te->callback = EV_WallPuff_Wind;
@@ -142,9 +142,9 @@ inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
 
 		int gray = MuzzleSmokeGray( t + step * 0.41f, seed + (float)i * 1.7f );
 
-		float sc = baseScale * ( 0.32f + step * 0.68f );
+		float sc = baseScale * ( 0.45f + step * 0.95f );
 
-		float life = 0.30f + step * 0.60f;
+		float life = 0.40f + step * 0.85f;
 
 		float framerate = 20.0f + step * 12.0f;
 
@@ -166,7 +166,7 @@ inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
 		Vector spawn = muzzlePos;
 		spawn.x += dir.x * dist;
 		spawn.y += dir.y * dist;
-	spawn.z += dir.z * dist + step * 1.5f;
+		spawn.z += dir.z * dist + step * 1.5f;
 
 		MuzzleSmokePuff( spawn, dir, vel, sc, gray, life, framerate, wind );
 	}
