@@ -20,7 +20,6 @@
 #include "hull_types.h"
 #include "fx_flags.h"
 #include "pi_constant.h"
-#include "events/ev_fx_no_black_square.h"
 
 extern engine_studio_api_t IEngineStudio;
 
