@@ -29,23 +29,15 @@
 
 #include "com_model.h"
 
-// NOTE: additive blending (kRenderTransAdd) ACCUMULATES. Too many large,
-// bright, high-alpha puffs overlap in the centre and saturate to pure white,
-// blinding the player. Keep the cloud count, size and alpha conservative so
-// the sum stays below full white even when standing inside the cloud.
-
-#define SMOKE_CLOUDS 18
+// smoke grenade cloud count
+#define SMOKE_CLOUDS 22
 
 // spread radius (units) for the initial burst clouds
-#define SMOKE_SPREAD 150.0f
+#define SMOKE_SPREAD 170.0f
 
 // lifetime of a cloud, and when it starts to fade out
 #define SMOKE_LIFETIME 42.0f
 #define SMOKE_FADE_START 22.0f
-
-// mid grey smoke: visible but far from white
-#define SMOKE_GRAY_MIN 110
-#define SMOKE_GRAY_MAX 150
 
 void EV_CreateSmoke(event_args_s *args)
 {
@@ -97,8 +89,10 @@ void EV_CreateSmoke(event_args_s *args)
 				pTemp->entity.model = (struct model_s*)pGasModel;
 				pTemp->frameMax = frameMax;
 
-				// modest alpha so overlapping puffs do not sum to pure white
-				float alpha = (float)Com_RandomLong( 40, 70 );
+				// Alpha blending (classic CS smoke): solid, opaque wall of smoke.
+				// NOT additive -- additive can only brighten, which looks like
+				// thin glowing white haze instead of real smoke.
+				float alpha = 255.0f;
 				float fadeWindow = SMOKE_LIFETIME - SMOKE_FADE_START;
 
 				pTemp->entity.curstate.fuser1 = alpha;                       // initial alpha
@@ -106,14 +100,14 @@ void EV_CreateSmoke(event_args_s *args)
 				pTemp->entity.curstate.fuser3 = now + SMOKE_FADE_START;       // fade start time
 				pTemp->entity.curstate.fuser4 = now;                          // creation time
 
-				pTemp->entity.curstate.rendermode = kRenderTransAdd;
+				pTemp->entity.curstate.rendermode = kRenderTransAlpha;
 				pTemp->entity.curstate.renderamt = (int)alpha;
-				// mid grey smoke (not white)
-				pTemp->entity.curstate.rendercolor.r = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
-				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
-				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
-				// moderate puff size
-				pTemp->entity.curstate.scale = Com_RandomFloat( 3.5f, 5.5f );
+				// classic near-white smoke
+				pTemp->entity.curstate.rendercolor.r = Com_RandomLong( 210, 230 );
+				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( 210, 230 );
+				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( 210, 230 );
+				// classic puff size
+				pTemp->entity.curstate.scale = Com_RandomFloat( 4.5f, 6.0f );
 
 				pTemp->entity.baseline.origin.x = Com_RandomLong(-5, 5);
 				pTemp->entity.baseline.origin.y = Com_RandomLong(-5, 5);
@@ -128,8 +122,7 @@ void EV_CreateSmoke(event_args_s *args)
 	}
 	else
 	{
-		// mid grey drifting clouds
-		int g = gEngfuncs.pfnRandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
+		int g = gEngfuncs.pfnRandomLong( 190, 220 );
 
 		Vector dir( args->fparam1, args->fparam2, 0.0f );
 		Vector vel( 0.0f, 0.0f, 0.0f );
