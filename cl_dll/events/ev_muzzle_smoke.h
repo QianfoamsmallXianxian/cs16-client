@@ -1,6 +1,7 @@
 #ifndef CS16_EV_MUZZLE_SMOKE_H
 #define CS16_EV_MUZZLE_SMOKE_H
 
+#include "hud.h"
 #include "const.h"
 #include "r_efx.h"
 #include "event_api.h"
@@ -18,6 +19,10 @@
 
 #ifndef CS16_MUZZLE_SMOKE_PUFFS_TP
 #define CS16_MUZZLE_SMOKE_PUFFS_TP 6
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_PUFFS_DUAL
+#define CS16_MUZZLE_SMOKE_PUFFS_DUAL 6
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MIN
@@ -38,6 +43,10 @@
 
 #ifndef CS16_MUZZLE_SMOKE_FWD
 #define CS16_MUZZLE_SMOKE_FWD 9.0f
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_DUAL_FWD
+#define CS16_MUZZLE_SMOKE_DUAL_FWD 3.0f
 #endif
 
 struct tempent_s;
@@ -71,9 +80,37 @@ inline bool MuzzleSmokeIsExcluded( const char *name )
 	return false;
 }
 
+inline bool MuzzleSmokeIsDualWeapon( const char *name )
+{
+	if( !name || !name[0] )
+		return false;
+
+	static const char *dual[] =
+	{
+		"elite", "dual", "beretta", "96g", "dualberetta", "dualpistol",
+		0
+	};
+
+	for( int i = 0; dual[i]; i++ )
+	{
+		if( strstr( name, dual[i] ) )
+			return true;
+	}
+
+	return false;
+}
+
 inline bool MuzzleSmokeWeaponAllowed( const char *modelName )
 {
 	return !MuzzleSmokeIsExcluded( modelName );
+}
+
+inline bool MuzzleSmokeLeftHanded()
+{
+	if( gHUD.cl_righthand )
+		return ( gHUD.cl_righthand->value == 0.0f );
+
+	return false;
 }
 
 inline int MuzzleSmokeGray( float t, float seed )
@@ -123,12 +160,10 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 }
 
 inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
-	bool firstPerson, float scale )
+	bool firstPerson, float scale, int puffs, bool mirror )
 {
 #if CS16_MUZZLE_SMOKE_ON
 	Vector vel = g_vPlayerVelocity;
-
-	int puffs = firstPerson ? CS16_MUZZLE_SMOKE_PUFFS_FP : CS16_MUZZLE_SMOKE_PUFFS_TP;
 
 	float baseScale = ( scale > 0.0f ) ? scale : 0.5f;
 
@@ -156,6 +191,9 @@ inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
 		float sy = (float)( ( ( i * 53 ) % 13 ) - 6 ) * spread * 0.03f;
 		float sz = (float)( ( ( i * 29 ) % 7 ) - 3 ) * spread * 0.02f;
 
+		if( mirror )
+			sx = -sx;
+
 		Vector dir;
 		dir.x = forward.x + sx;
 		dir.y = forward.y + sy;
@@ -170,6 +208,15 @@ inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
 
 		MuzzleSmokePuff( spawn, dir, vel, sc, gray, life, framerate, wind );
 	}
+#endif
+}
+
+inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
+	bool firstPerson, float scale )
+{
+#if CS16_MUZZLE_SMOKE_ON
+	int puffs = firstPerson ? CS16_MUZZLE_SMOKE_PUFFS_FP : CS16_MUZZLE_SMOKE_PUFFS_TP;
+	MuzzleSmokeAt( muzzlePos, forward, firstPerson, scale, puffs, false );
 #endif
 }
 
@@ -196,6 +243,50 @@ inline void MuzzleSmokeFromAngles( const Vector &muzzlePos, const Vector &angles
 #endif
 }
 
+inline void MuzzleSmokeFromAnglesDual( const Vector &muzzlePos, const Vector &angles,
+	bool firstPerson, float scale, bool mirror )
+{
+#if CS16_MUZZLE_SMOKE_ON
+	const float DEG2RAD = 3.14159265358979f / 180.0f;
+
+	float pitch = angles.x * DEG2RAD;
+	float yaw = angles.y * DEG2RAD;
+
+	float cp = (float)cos( pitch );
+	float sp = (float)sin( pitch );
+	float cy = (float)cos( yaw );
+	float sy = (float)sin( yaw );
+
+	Vector forward;
+	forward.x = cp * cy;
+	forward.y = cp * sy;
+	forward.z = -sp;
+
+	int puffs = CS16_MUZZLE_SMOKE_PUFFS_DUAL;
+
+	MuzzleSmokeAt( muzzlePos, forward, firstPerson, scale, puffs, mirror );
+#endif
+}
+
+inline void MuzzleSmokeAtAttachment( struct cl_entity_s *entity, int index,
+	const Vector &angles, bool firstPerson, float scale, bool dual, bool mirror )
+{
+#if CS16_MUZZLE_SMOKE_ON
+	if( !entity || index < 0 || index >= 4 )
+		return;
+
+	Vector muzzlePos;
+	muzzlePos.x = entity->attachment[index][0];
+	muzzlePos.y = entity->attachment[index][1];
+	muzzlePos.z = entity->attachment[index][2];
+
+	if( dual )
+		MuzzleSmokeFromAnglesDual( muzzlePos, angles, firstPerson, scale, mirror );
+	else
+		MuzzleSmokeFromAngles( muzzlePos, angles, firstPerson, scale );
+#endif
+}
+
 inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachment,
 	bool firstPerson, float scale )
 {
@@ -208,16 +299,25 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 	if( !MuzzleSmokeWeaponAllowed( modelName ) )
 		return;
 
-	Vector muzzlePos;
-	muzzlePos.x = attachment[0];
-	muzzlePos.y = attachment[1];
-	muzzlePos.z = attachment[2];
-
 	Vector ang;
 	if( firstPerson )
 		ang = v_angles;
 	else
 		ang = entity->angles;
+
+	bool leftHanded = MuzzleSmokeLeftHanded();
+
+	if( MuzzleSmokeIsDualWeapon( modelName ) )
+	{
+		MuzzleSmokeAtAttachment( entity, 0, ang, firstPerson, scale, true, leftHanded );
+		MuzzleSmokeAtAttachment( entity, 1, ang, firstPerson, scale, true, !leftHanded );
+		return;
+	}
+
+	Vector muzzlePos;
+	muzzlePos.x = attachment[0];
+	muzzlePos.y = attachment[1];
+	muzzlePos.z = attachment[2];
 
 	MuzzleSmokeFromAngles( muzzlePos, ang, firstPerson, scale );
 #endif
