@@ -453,11 +453,13 @@ inline bool ImpactIsEnemy( int hitEntity )
 }
 
 
+
 // ============================================================================
-// Engine-builtin impact FX: sparks + debris + fire dlight.
+// Engine-builtin impact FX: sparks + classic dot debris + fire dlight.
 // Model-free only: never fails on missing .spr, never makes black squares.
-// Particle budget kept modest so automatic fire cannot exhaust the dlight
-// pool or tank the framerate.
+//
+// Debris uses R_RunParticleEffect (classic single-PIXEL particles, the tiny
+// "dots" CS players expect), NOT R_StreakSplash (which draws long streaks).
 // ============================================================================
 inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char tex )
 {
@@ -471,32 +473,36 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	up.y = 0.0f;
 	up.z = 1.0f;
 
-	// ---- sparks: shower + two spray rings + two streak bursts ----
+	// ---- sparks: shower + spray + short streaks ----
 	gEngfuncs.pEfxAPI->R_SparkShower( (float *)&pos );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 22, 80, 260 );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 12, 50, 160 );
-	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 18, 80, 300 );
-	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 10, 50, 170 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 20, 80, 260 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 10, 50, 160 );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 10, 80, 280 );
 
 	// ---- bullet impact particle burst ----
 	gEngfuncs.pEfxAPI->R_BulletImpactParticles( (float *)&pos );
 
-	// ---- debris streaks flying off the surface ----
-	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&dir, 4, 18, 190.0f, -180, 180 );
-	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&up,  4, 12, 150.0f,  -70, 150 );
-
-	// ---- specks / dust, count depends on material ----
-	int specks = 10;
+	// ---- CLASSIC DOT DEBRIS (tiny pixels, not streaks) ----
+	// count scales with material: harder surfaces throw more specks
+	int dots = 14;
 
 	if( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE || tex == CHAR_TEX_GRATE )
-		specks = 16;
+		dots = 26;
 	else if( tex == CHAR_TEX_GLASS || tex == CHAR_TEX_COMPUTER )
-		specks = 18;
+		dots = 30;
 	else if( tex == CHAR_TEX_WOOD || tex == CHAR_TEX_DIRT )
-		specks = 13;
+		dots = 20;
+	else if( tex == CHAR_TEX_TILE || tex == CHAR_TEX_VENT )
+		dots = 24;
 
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, specks );
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up,  0, 7 );
+	// main burst straight off the surface
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, dots );
+
+	// second burst drifting upward (gives the debris some life)
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, 0, dots / 2 );
+
+	// a few extra slow specks that hang in the air
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, 6 );
 
 	// ---- single fire dlight per hit: keeps dlight pool healthy ----
 	float now = gEngfuncs.GetClientTime();
