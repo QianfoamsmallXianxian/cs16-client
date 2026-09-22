@@ -39,6 +39,10 @@
 #define SMOKE_LIFETIME 42.0f
 #define SMOKE_FADE_START 22.0f
 
+// soft off-white smoke, but not pure white
+#define SMOKE_GRAY_MIN 175
+#define SMOKE_GRAY_MAX 215
+
 void EV_CreateSmoke(event_args_s *args)
 {
 	TEMPENTITY *pTemp;
@@ -99,10 +103,10 @@ void EV_CreateSmoke(event_args_s *args)
 
 				pTemp->entity.curstate.rendermode = kRenderTransAdd;
 				pTemp->entity.curstate.renderamt = (int)alpha;
-				// darker grey smoke (not so white)
-				pTemp->entity.curstate.rendercolor.r = Com_RandomLong( 95, 140 );
-				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( 95, 140 );
-				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( 95, 140 );
+				// soft off-white smoke (not pure white)
+				pTemp->entity.curstate.rendercolor.r = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
+				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
+				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
 				// much bigger puffs -> wider coverage
 				pTemp->entity.curstate.scale = Com_RandomFloat( 8.0f, 11.0f );
 
@@ -119,8 +123,8 @@ void EV_CreateSmoke(event_args_s *args)
 	}
 	else
 	{
-		// darker, larger drifting clouds
-		int g = gEngfuncs.pfnRandomLong( 95, 140 );
+		// soft off-white drifting clouds
+		int g = gEngfuncs.pfnRandomLong( SMOKE_GRAY_MIN, SMOKE_GRAY_MAX );
 
 		Vector dir( args->fparam1, args->fparam2, 0.0f );
 		Vector vel( 0.0f, 0.0f, 0.0f );
