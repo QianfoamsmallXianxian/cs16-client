@@ -508,7 +508,13 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, 6 );
 
 	// ---- single fire dlight per hit: keeps dlight pool healthy ----
+	static float s_lastImpactDlight = -1.0f;
 	float now = gEngfuncs.GetClientTime();
+
+	if( now - s_lastImpactDlight < 0.05f )
+		return;
+
+	s_lastImpactDlight = now;
 
 	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
 
@@ -546,6 +552,7 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 			return;
 
 		ImpactEmitBlood( pos, normal );
+		ImpactEmitBloodHeavy( pos, normal );
 		return;
 	}
 
