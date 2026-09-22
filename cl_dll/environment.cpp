@@ -20,6 +20,7 @@
 #include "hull_types.h"
 #include "fx_flags.h"
 #include "pi_constant.h"
+#include "events/ev_fx_no_black_square.h"
 
 extern engine_studio_api_t IEngineStudio;
 
@@ -266,7 +267,7 @@ RainData::RainData():
 	raindropParticleParams.minSize = raindropParticleParams.maxSize = 2.0f;
 	raindropParticleParams.color = Vector(255.0f, 255.0f, 255.0f);
 	raindropParticleParams.brightness = 128;
-	raindropParticleParams.renderMode = kRenderTransAlpha;
+	raindropParticleParams.renderMode = CS16Fx::SafeParticleMode();
 	raindropParticleParams.lightFlag = LIGHT_NONE;
 	raindropStretchY = 40.0f;
 
@@ -278,7 +279,7 @@ RainData::RainData():
 	windParticleParams.maxSize = 75.0f;
 	windParticleParams.color = Vector(128.0f, 128.0f, 128.0f);
 	windParticleParams.brightness = 128;
-	windParticleParams.renderMode = kRenderTransAlpha;
+	windParticleParams.renderMode = CS16Fx::SafeParticleMode();
 	windParticleParams.lightFlag = LIGHT_NONE;
 
 	windpuffLife = 6.0f;
@@ -1292,7 +1293,7 @@ int CEnvironment::MsgFunc_Rain(const char *pszName, int iSize, void *pbuf)
 
 		const int raindropRenderMode = reader.ReadByte();
 		if (raindropRenderMode > 0)
-			rainData.raindropParticleParams.renderMode = raindropRenderMode;
+			rainData.raindropParticleParams.renderMode = CS16Fx::SafeParticleModeOr( raindropRenderMode );
 
 		const int raindropBrightness = reader.ReadByte();
 		if (raindropBrightness > 0)
@@ -1334,7 +1335,7 @@ int CEnvironment::MsgFunc_Rain(const char *pszName, int iSize, void *pbuf)
 
 		const int windPuffRenderMode = reader.ReadByte();
 		if (windPuffRenderMode > 0)
-			rainData.windParticleParams.renderMode = windPuffRenderMode;
+			rainData.windParticleParams.renderMode = CS16Fx::SafeParticleModeOr( windPuffRenderMode );
 
 		const int windPuffBrightness = reader.ReadByte();
 		if (windPuffBrightness > 0)
@@ -1368,7 +1369,7 @@ int CEnvironment::MsgFunc_Rain(const char *pszName, int iSize, void *pbuf)
 
 		const int splashRenderMode = reader.ReadByte();
 		if (splashRenderMode > 0)
-			rainData.splashParticleParams.renderMode = splashRenderMode;
+			rainData.splashParticleParams.renderMode = CS16Fx::SafeParticleModeOr( splashRenderMode );
 
 		const int splashBrightness = reader.ReadByte();
 		if (splashBrightness > 0)
@@ -1394,7 +1395,7 @@ int CEnvironment::MsgFunc_Rain(const char *pszName, int iSize, void *pbuf)
 
 		const int rippleRenderMode = reader.ReadByte();
 		if (rippleRenderMode > 0)
-			rainData.rippleParticleParams.renderMode = rippleRenderMode;
+			rainData.rippleParticleParams.renderMode = CS16Fx::SafeParticleModeOr( rippleRenderMode );
 
 		const int rippleBrightness = reader.ReadByte();
 		if (rippleBrightness > 0)
@@ -1507,7 +1508,7 @@ int CEnvironment::MsgFunc_Snow(const char *pszName, int iSize, void *pbuf)
 
 		const int snowflakeRenderMode = reader.ReadByte();
 		if (snowflakeRenderMode > 0)
-			snowData.snowflakeParticleParams.renderMode = snowflakeRenderMode;
+			snowData.snowflakeParticleParams.renderMode = CS16Fx::SafeParticleModeOr( snowflakeRenderMode );
 
 		const int snowflakeBrightness = reader.ReadByte();
 		if (snowflakeBrightness > 0)
