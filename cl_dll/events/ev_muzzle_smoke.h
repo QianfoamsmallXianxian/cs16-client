@@ -173,7 +173,7 @@ inline bool MuzzleSmokeWeaponAllowed( const char *modelName )
 inline bool MuzzleSmokeLeftHanded()
 {
 	if( gHUD.cl_righthand )
-		return ( gHUD.cl_righthand->value == 0.0f );
+		return ( gHUD.cl_righthand.value == 0.0f );
 
 	return false;
 }
@@ -192,6 +192,22 @@ inline int MuzzleSmokeSpriteIndex()
 {
 	static int   s_modelIndex = -1;
 	static float s_lastTime   = -1.0f;
+	static char  s_lastMap[128] = { 0 };
+
+	const char *map = 0;
+
+	if( gEngfuncs.pfnGetLevelName )
+		map = gEngfuncs.pfnGetLevelName();
+
+	if( map && map[0] )
+	{
+		if( strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
+		{
+			strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
+			s_lastMap[sizeof( s_lastMap ) - 1] = 0;
+			s_modelIndex = -1;
+		}
+	}
 
 	float now = gEngfuncs.GetClientTime();
 
