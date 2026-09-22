@@ -319,22 +319,22 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, struct cl_en
 	{
 	case 5001:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[0], atoi( event->options) );
-		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[0], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[0], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f, 0 );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[0], atoi( event->options) );
 		break;
 	case 5011:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[1], atoi( event->options) );
-		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[1], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[1], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f, 1 );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[1], atoi( event->options) );
 		break;
 	case 5021:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[2], atoi( event->options) );
-		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[2], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[2], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f, 2 );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[2], atoi( event->options) );
 		break;
 	case 5031:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[3], atoi( event->options) );
-		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[3], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[3], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f, 3 );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[3], atoi( event->options) );
 		break;
 	case 5002:

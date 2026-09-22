@@ -45,8 +45,8 @@
 #define CS16_MUZZLE_SMOKE_FWD 9.0f
 #endif
 
-#ifndef CS16_MUZZLE_SMOKE_DUAL_FWD
-#define CS16_MUZZLE_SMOKE_DUAL_FWD 3.0f
+#ifndef CS16_MUZZLE_SMOKE_DEDUP
+#define CS16_MUZZLE_SMOKE_DEDUP 0.001f
 #endif
 
 struct tempent_s;
@@ -121,6 +121,22 @@ inline int MuzzleSmokeGray( float t, float seed )
 	return CS16_MUZZLE_SMOKE_GRAY_MIN + ( h % span );
 }
 
+inline bool MuzzleSmokeDedup( int entindex, int attach, float t )
+{
+	static int   s_lastEnt[4]    = { -1, -1, -1, -1 };
+	static float s_lastTime[4]   = { -100.0f, -100.0f, -100.0f, -100.0f };
+
+	if( attach < 0 || attach > 3 )
+		return false;
+
+	if( s_lastEnt[attach] == entindex && ( t - s_lastTime[attach] ) < CS16_MUZZLE_SMOKE_DEDUP )
+		return true;
+
+	s_lastEnt[attach] = entindex;
+	s_lastTime[attach] = t;
+	return false;
+}
+
 inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	const Vector &velocity, float scale, int gray, float life,
 	float framerate, bool wind )
@@ -159,17 +175,15 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	te->die = gEngfuncs.GetClientTime() + life;
 }
 
-inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
-	bool firstPerson, float scale, int puffs, bool mirror )
+inline void MuzzleSmokeEmit( const Vector &muzzlePos, const Vector &forward,
+	const Vector &velocity, float scale, int puffs, bool mirror )
 {
 #if CS16_MUZZLE_SMOKE_ON
-	Vector vel = g_vPlayerVelocity;
-
 	float baseScale = ( scale > 0.0f ) ? scale : 0.5f;
 
 	float t = gEngfuncs.GetClientTime();
 
-	float seed = muzzlePos.x * 0.13f + muzzlePos.y * 0.07f + vel.x * 0.05f + vel.y * 0.03f;
+	float seed = muzzlePos.x * 0.13f + muzzlePos.y * 0.07f + velocity.x * 0.05f + velocity.y * 0.03f;
 
 	for( int i = 0; i < puffs; i++ )
 	{
@@ -206,22 +220,13 @@ inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
 		spawn.y += dir.y * dist;
 		spawn.z += dir.z * dist + step * 1.5f;
 
-		MuzzleSmokePuff( spawn, dir, vel, sc, gray, life, framerate, wind );
+		MuzzleSmokePuff( spawn, dir, velocity, sc, gray, life, framerate, wind );
 	}
 #endif
 }
 
-inline void MuzzleSmokeAt( const Vector &muzzlePos, const Vector &forward,
-	bool firstPerson, float scale )
-{
-#if CS16_MUZZLE_SMOKE_ON
-	int puffs = firstPerson ? CS16_MUZZLE_SMOKE_PUFFS_FP : CS16_MUZZLE_SMOKE_PUFFS_TP;
-	MuzzleSmokeAt( muzzlePos, forward, firstPerson, scale, puffs, false );
-#endif
-}
-
 inline void MuzzleSmokeFromAngles( const Vector &muzzlePos, const Vector &angles,
-	bool firstPerson, float scale )
+	const Vector &velocity, float scale, int puffs, bool mirror )
 {
 #if CS16_MUZZLE_SMOKE_ON
 	const float DEG2RAD = 3.14159265358979f / 180.0f;
@@ -239,56 +244,12 @@ inline void MuzzleSmokeFromAngles( const Vector &muzzlePos, const Vector &angles
 	forward.y = cp * sy;
 	forward.z = -sp;
 
-	MuzzleSmokeAt( muzzlePos, forward, firstPerson, scale );
-#endif
-}
-
-inline void MuzzleSmokeFromAnglesDual( const Vector &muzzlePos, const Vector &angles,
-	bool firstPerson, float scale, bool mirror )
-{
-#if CS16_MUZZLE_SMOKE_ON
-	const float DEG2RAD = 3.14159265358979f / 180.0f;
-
-	float pitch = angles.x * DEG2RAD;
-	float yaw = angles.y * DEG2RAD;
-
-	float cp = (float)cos( pitch );
-	float sp = (float)sin( pitch );
-	float cy = (float)cos( yaw );
-	float sy = (float)sin( yaw );
-
-	Vector forward;
-	forward.x = cp * cy;
-	forward.y = cp * sy;
-	forward.z = -sp;
-
-	int puffs = CS16_MUZZLE_SMOKE_PUFFS_DUAL;
-
-	MuzzleSmokeAt( muzzlePos, forward, firstPerson, scale, puffs, mirror );
-#endif
-}
-
-inline void MuzzleSmokeAtAttachment( struct cl_entity_s *entity, int index,
-	const Vector &angles, bool firstPerson, float scale, bool dual, bool mirror )
-{
-#if CS16_MUZZLE_SMOKE_ON
-	if( !entity || index < 0 || index >= 4 )
-		return;
-
-	Vector muzzlePos;
-	muzzlePos.x = entity->attachment[index][0];
-	muzzlePos.y = entity->attachment[index][1];
-	muzzlePos.z = entity->attachment[index][2];
-
-	if( dual )
-		MuzzleSmokeFromAnglesDual( muzzlePos, angles, firstPerson, scale, mirror );
-	else
-		MuzzleSmokeFromAngles( muzzlePos, angles, firstPerson, scale );
+	MuzzleSmokeEmit( muzzlePos, forward, velocity, scale, puffs, mirror );
 #endif
 }
 
 inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachment,
-	bool firstPerson, float scale )
+	bool firstPerson, float scale, int attachIndex )
 {
 #if CS16_MUZZLE_SMOKE_ON
 	if( !entity || !attachment )
@@ -299,6 +260,11 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 	if( !MuzzleSmokeWeaponAllowed( modelName ) )
 		return;
 
+	float t = gEngfuncs.GetClientTime();
+
+	if( MuzzleSmokeDedup( entity->index, attachIndex, t ) )
+		return;
+
 	Vector ang;
 	if( firstPerson )
 		ang = v_angles;
@@ -306,20 +272,24 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 		ang = entity->angles;
 
 	bool leftHanded = MuzzleSmokeLeftHanded();
+	bool dual = MuzzleSmokeIsDualWeapon( modelName );
 
-	if( MuzzleSmokeIsDualWeapon( modelName ) )
-	{
-		MuzzleSmokeAtAttachment( entity, 0, ang, firstPerson, scale, true, leftHanded );
-		MuzzleSmokeAtAttachment( entity, 1, ang, firstPerson, scale, true, !leftHanded );
-		return;
-	}
+	bool mirror = leftHanded;
+	if( dual && attachIndex == 1 )
+		mirror = !mirror;
 
 	Vector muzzlePos;
 	muzzlePos.x = attachment[0];
 	muzzlePos.y = attachment[1];
 	muzzlePos.z = attachment[2];
 
-	MuzzleSmokeFromAngles( muzzlePos, ang, firstPerson, scale );
+	int puffs;
+	if( dual )
+		puffs = CS16_MUZZLE_SMOKE_PUFFS_DUAL;
+	else
+		puffs = firstPerson ? CS16_MUZZLE_SMOKE_PUFFS_FP : CS16_MUZZLE_SMOKE_PUFFS_TP;
+
+	MuzzleSmokeFromAngles( muzzlePos, ang, g_vPlayerVelocity, scale, puffs, mirror );
 #endif
 }
 
