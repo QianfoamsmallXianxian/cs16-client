@@ -33,7 +33,7 @@
 
 // how many engine blood puffs per hit
 #ifndef CS16_BLOOD_PUFFS
-#define CS16_BLOOD_PUFFS 6
+#define CS16_BLOOD_PUFFS 22
 #endif
 
 // palette colour index for red blood (classic Half-Life value)
@@ -119,13 +119,13 @@ inline void BloodEmitEngine( const Vector &pos, const Vector &normal )
 	}
 
 	// extra red specks that arc away
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, CS16_BLOOD_COLOR_RED, 24 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, CS16_BLOOD_COLOR_RED, 40 );
 
 	Vector up;
 	up.x = 0.0f;
 	up.y = 0.0f;
 	up.z = 1.0f;
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, CS16_BLOOD_COLOR_RED, 12 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, CS16_BLOOD_COLOR_RED, 24 );
 }
 
 // ============================================================================
@@ -196,7 +196,7 @@ inline void ImpactEmitBloodHeavy( const Vector &pos, const Vector &normal )
 {
 #if CS16_BLOOD_FX_ON
 	BloodEmitEngine( pos, normal );
-	BloodEmitSprites( pos );
+	// sprite blood removed: vanilla CS 1.6 uses engine R_Blood particles only
 #endif
 }
 
