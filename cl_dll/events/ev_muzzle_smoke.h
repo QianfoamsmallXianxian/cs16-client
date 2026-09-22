@@ -49,6 +49,10 @@
 #define CS16_MUZZLE_SMOKE_DEDUP 0.001f
 #endif
 
+#ifndef CS16_MUZZLE_SMOKE_MAX_PUFFS
+#define CS16_MUZZLE_SMOKE_MAX_PUFFS 16
+#endif
+
 struct tempent_s;
 void EV_WallPuff_Wind( struct tempent_s *te, float frametime, float currenttime );
 void EV_SmokeRise( struct tempent_s *te, float frametime, float currenttime );
@@ -58,6 +62,41 @@ extern vec3_t v_angles;
 
 namespace CS16Fx
 {
+
+inline unsigned int MuzzleSmokeHash( const char *s )
+{
+	unsigned int h = 2166136261u;
+
+	if( !s )
+		return 0;
+
+	while( *s )
+	{
+		h ^= (unsigned char)( *s++ );
+		h *= 16777619u;
+	}
+
+	return h;
+}
+
+inline bool MuzzleSmokeContains( const char *s, const char *sub )
+{
+	if( !s || !sub )
+		return false;
+
+	size_t n = strlen( sub );
+
+	if( !n )
+		return false;
+
+	for( const char *p = s; *p; p++ )
+	{
+		if( *p == *sub && !strncmp( p, sub, n ) )
+			return true;
+	}
+
+	return false;
+}
 
 inline bool MuzzleSmokeIsExcluded( const char *name )
 {
@@ -73,7 +112,7 @@ inline bool MuzzleSmokeIsExcluded( const char *name )
 
 	for( int i = 0; excluded[i]; i++ )
 	{
-		if( strstr( name, excluded[i] ) )
+		if( MuzzleSmokeContains( name, excluded[i] ) )
 			return true;
 	}
 
@@ -93,16 +132,42 @@ inline bool MuzzleSmokeIsDualWeapon( const char *name )
 
 	for( int i = 0; dual[i]; i++ )
 	{
-		if( strstr( name, dual[i] ) )
+		if( MuzzleSmokeContains( name, dual[i] ) )
 			return true;
 	}
 
 	return false;
 }
 
+inline unsigned int MuzzleSmokeWeaponClass( const char *name )
+{
+	static unsigned int s_lastHash = 0xFFFFFFFFu;
+	static int          s_lastClass = 0;
+
+	if( !name || !name[0] )
+		return 0;
+
+	unsigned int h = MuzzleSmokeHash( name );
+
+	if( h == s_lastHash )
+		return (unsigned int)s_lastClass;
+
+	int cls = 0;
+
+	if( !MuzzleSmokeIsExcluded( name ) )
+	{
+		cls = MuzzleSmokeIsDualWeapon( name ) ? 2 : 1;
+	}
+
+	s_lastHash = h;
+	s_lastClass = cls;
+
+	return (unsigned int)cls;
+}
+
 inline bool MuzzleSmokeWeaponAllowed( const char *modelName )
 {
-	return !MuzzleSmokeIsExcluded( modelName );
+	return MuzzleSmokeWeaponClass( modelName ) != 0;
 }
 
 inline bool MuzzleSmokeLeftHanded()
@@ -117,14 +182,34 @@ inline int MuzzleSmokeGray( float t, float seed )
 {
 	int span = CS16_MUZZLE_SMOKE_GRAY_MAX - CS16_MUZZLE_SMOKE_GRAY_MIN + 1;
 	int h = (int)( t * 613.0f ) ^ (int)( seed * 157.0f );
-	if( h < 0 ) h = -h;
+
+	h = h & 0x7FFFFFFF;
+
 	return CS16_MUZZLE_SMOKE_GRAY_MIN + ( h % span );
+}
+
+inline int MuzzleSmokeSpriteIndex()
+{
+	static int   s_modelIndex = -1;
+	static float s_lastTime   = -1.0f;
+
+	float now = gEngfuncs.GetClientTime();
+
+	if( now < s_lastTime )
+		s_modelIndex = -1;
+
+	s_lastTime = now;
+
+	if( s_modelIndex <= 0 )
+		s_modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex( "sprites/black_smoke1.spr" );
+
+	return s_modelIndex;
 }
 
 inline bool MuzzleSmokeDedup( int entindex, int attach, float t )
 {
-	static int   s_lastEnt[4]    = { -1, -1, -1, -1 };
-	static float s_lastTime[4]   = { -100.0f, -100.0f, -100.0f, -100.0f };
+	static int   s_lastEnt[4]  = { -1, -1, -1, -1 };
+	static float s_lastTime[4] = { -100.0f, -100.0f, -100.0f, -100.0f };
 
 	if( attach < 0 || attach > 3 )
 		return false;
@@ -134,6 +219,7 @@ inline bool MuzzleSmokeDedup( int entindex, int attach, float t )
 
 	s_lastEnt[attach] = entindex;
 	s_lastTime[attach] = t;
+
 	return false;
 }
 
@@ -141,13 +227,15 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	const Vector &velocity, float scale, int gray, float life,
 	float framerate, bool wind )
 {
-	int modelIndex = gEngfuncs.pEventAPI->EV_FindModelIndex( "sprites/black_smoke1.spr" );
+	int modelIndex = MuzzleSmokeSpriteIndex();
+
 	if( modelIndex <= 0 )
 		return;
 
 	Vector spawn = origin;
 
 	TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( spawn, modelIndex, framerate );
+
 	if( !te )
 		return;
 
@@ -179,6 +267,12 @@ inline void MuzzleSmokeEmit( const Vector &muzzlePos, const Vector &forward,
 	const Vector &velocity, float scale, int puffs, bool mirror )
 {
 #if CS16_MUZZLE_SMOKE_ON
+	if( puffs > CS16_MUZZLE_SMOKE_MAX_PUFFS )
+		puffs = CS16_MUZZLE_SMOKE_MAX_PUFFS;
+
+	if( puffs < 1 )
+		return;
+
 	float baseScale = ( scale > 0.0f ) ? scale : 0.5f;
 
 	float t = gEngfuncs.GetClientTime();
@@ -255,9 +349,14 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 	if( !entity || !attachment )
 		return;
 
+	if( attachIndex < 0 || attachIndex > 3 )
+		return;
+
 	const char *modelName = ( entity->model ) ? entity->model->name : 0;
 
-	if( !MuzzleSmokeWeaponAllowed( modelName ) )
+	unsigned int cls = MuzzleSmokeWeaponClass( modelName );
+
+	if( cls == 0 )
 		return;
 
 	float t = gEngfuncs.GetClientTime();
@@ -266,15 +365,17 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 		return;
 
 	Vector ang;
+
 	if( firstPerson )
 		ang = v_angles;
 	else
 		ang = entity->angles;
 
 	bool leftHanded = MuzzleSmokeLeftHanded();
-	bool dual = MuzzleSmokeIsDualWeapon( modelName );
+	bool dual = ( cls == 2 );
 
 	bool mirror = leftHanded;
+
 	if( dual && attachIndex == 1 )
 		mirror = !mirror;
 
@@ -284,6 +385,7 @@ inline void MuzzleSmokeEvent( struct cl_entity_s *entity, const float *attachmen
 	muzzlePos.z = attachment[2];
 
 	int puffs;
+
 	if( dual )
 		puffs = CS16_MUZZLE_SMOKE_PUFFS_DUAL;
 	else
