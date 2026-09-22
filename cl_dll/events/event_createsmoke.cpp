@@ -30,10 +30,10 @@
 #include "com_model.h"
 
 // smoke grenade cloud count
-#define SMOKE_CLOUDS 40
+#define SMOKE_CLOUDS 30
 
 // spread radius (units) for the initial burst clouds
-#define SMOKE_SPREAD 260.0f
+#define SMOKE_SPREAD 220.0f
 
 // lifetime of a cloud, and when it starts to fade out
 #define SMOKE_LIFETIME 42.0f
@@ -92,7 +92,7 @@ void EV_CreateSmoke(event_args_s *args)
 				// Alpha blending (classic CS smoke): solid, opaque wall of smoke.
 				// NOT additive -- additive can only brighten, which looks like
 				// thin glowing white haze instead of real smoke.
-				float alpha = 255.0f;
+				float alpha = 220.0f;
 				float fadeWindow = SMOKE_LIFETIME - SMOKE_FADE_START;
 
 				pTemp->entity.curstate.fuser1 = alpha;                       // initial alpha
@@ -107,7 +107,7 @@ void EV_CreateSmoke(event_args_s *args)
 				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( 210, 230 );
 				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( 210, 230 );
 				// classic puff size
-				pTemp->entity.curstate.scale = Com_RandomFloat( 6.5f, 9.0f );
+				pTemp->entity.curstate.scale = Com_RandomFloat( 5.5f, 7.5f );
 
 				pTemp->entity.baseline.origin.x = Com_RandomLong(-5, 5);
 				pTemp->entity.baseline.origin.y = Com_RandomLong(-5, 5);
