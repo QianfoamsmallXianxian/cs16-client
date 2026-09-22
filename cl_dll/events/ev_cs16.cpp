@@ -245,7 +245,7 @@ void EV_HLDM_GunshotDecalTrace( pmtrace_t *pTrace, char *decalName, char chTextu
 	int iRand;
 	physent_t *pe;
 
-	gEngfuncs.pEfxAPI->R_BulletImpactParticles( pTrace->endpos );
+	{ vec3_t _dd; _dd[0] = pTrace->plane.normal[0]; _dd[1] = pTrace->plane.normal[1]; _dd[2] = pTrace->plane.normal[2]; gEngfuncs.pEfxAPI->R_RunParticleEffect( pTrace->endpos, _dd, 0, 12 ); }
 
 
 	iRand = Com_RandomLong(0,0x7FFF);
