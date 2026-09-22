@@ -34,51 +34,20 @@
 // ---------------------------------------------------------------------------
 //  Grenade explosion ground debris
 //
-//  EV_CreateExplo() was an empty stub (CS:CZDS leftovers).  It now spawns
-//  sparks at the blast centre plus debris chunks and dust streaks kicked up
-//  from the ground underneath the explosion.
-//
-//  Design notes:
-//    * The engine FX API takes raw float pointers, and event_args_t::origin
-//      is a raw float[3]; everything below therefore works on vec3_t arrays.
-//    * Debris chunks use R_BreakModel, which needs a *model* index.  If the
-//      game assets do not ship those gib models, EV_FindModelIndex returns 0
-//      and we silently skip the chunks.
-//    * To guarantee visible feedback even without a gib model, we ALWAYS add
-//      engine point particles (R_ParticleExplosion) + dust streaks.  Those
-//      are textureless point particles, so they cannot produce the flat black
-//      sprite squares that Alpha-blended sprites used to cause.
+//  NOTE: R_BreakModel was dropped - it needs a gib *model* (concretegibs.mdl
+//  etc) which cstrike does NOT ship, so EV_FindModelIndex returns 0 and the
+//  chunks never appeared.  We now use model-free point particles, which are
+//  guaranteed to render: a burst of small specks flying up and outward plus
+//  dust streaks.  These are engine point particles, never sprites, so they
+//  cannot produce flat black squares.
 // ---------------------------------------------------------------------------
-
-// debris models, tried in order until one resolves on the client
-static const char *g_DebrisModels[] =
-{
-	"models/concretegibs.mdl",
-	"models/woodgibs.mdl",
-	"models/metalgibs.mdl",
-	"models/glassgibs.mdl",
-	NULL
-};
-
-static int FindFirstDebrisModel( void )
-{
-	for( int i = 0; g_DebrisModels[i] != NULL; i++ )
-	{
-		int idx = gEngfuncs.pEventAPI->EV_FindModelIndex( g_DebrisModels[i] );
-
-		if( idx > 0 )
-			return idx;
-	}
-
-	return 0;
-}
 
 void EV_CreateExplo(event_args_s *args)
 {
 	if( !args )
 		return;
 
-	// blast centre copied out of the raw event origin
+	// blast centre
 	vec3_t org;
 	org[0] = args->origin[0];
 	org[1] = args->origin[1];
@@ -112,7 +81,6 @@ void EV_CreateExplo(event_args_s *args)
 	}
 	else
 	{
-		// nothing solid below (in air) -> just use a spot under the blast
 		groundPos[0] = org[0];
 		groundPos[1] = org[1];
 		groundPos[2] = org[2] - 24.0f;
@@ -122,42 +90,22 @@ void EV_CreateExplo(event_args_s *args)
 	gEngfuncs.pEfxAPI->R_SparkShower( org );
 	gEngfuncs.pEfxAPI->R_SparkEffect( org, 12, -180, 180 );
 
-	// ---- physical debris chunks kicked out of the ground ------------------
-	// (only if the game actually ships a gib model)
-	int debrisIdx = FindFirstDebrisModel();
+	// ---- classic little debris specks from the ground ---------------------
+	// dir = up, so R_RunParticleEffect spreads the specks upward/outward
+	vec3_t up;
+	up[0] = 0.0f;
+	up[1] = 0.0f;
+	up[2] = 1.0f;
 
-	if( debrisIdx > 0 )
+	// several small bursts -> scattered specks instead of one clump
+	for( int i = 0; i < 4; i++ )
 	{
-		vec3_t boxSize;
-		boxSize[0] = boxSize[1] = boxSize[2] = 8.0f;
-
-		vec3_t dir;
-		dir[0] = dir[1] = dir[2] = 0.0f;
-
-		// several bursts -> a scattered pile of chunks, not one clump
-		for( int i = 0; i < 3; i++ )
-		{
-			gEngfuncs.pEfxAPI->R_BreakModel(
-				groundPos, boxSize, dir,
-				60.0f,		// random velocity spread
-				0.4f,		// life
-				4,			// chunk count per burst
-				debrisIdx,
-				0 );			// flags
-		}
+		gEngfuncs.pEfxAPI->R_RunParticleEffect(
+			groundPos, up, 0, Com_RandomLong( 8, 14 ) );
 	}
 
-	// ---- guaranteed point-particle debris (no sprite, no black squares) ---
-	// engine built-in particle explosion at the ground contact point
+	// point-particle explosion at the impact point (extra specks)
 	gEngfuncs.pEfxAPI->R_ParticleExplosion( groundPos );
-
-	// a second one slightly above, for volume
-	vec3_t upPos;
-	upPos[0] = groundPos[0];
-	upPos[1] = groundPos[1];
-	upPos[2] = groundPos[2] + 12.0f;
-
-	gEngfuncs.pEfxAPI->R_ParticleExplosion( upPos );
 
 	// ---- dust / dirt streaks rising from the impact point -----------------
 	vec3_t dustDir;
