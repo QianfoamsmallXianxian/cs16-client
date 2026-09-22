@@ -21,6 +21,15 @@
 #include "fx_flags.h"
 #include "pi_constant.h"
 
+
+namespace CS16Fx {
+inline int SafeParticleMode() { return kRenderTransAdd; }
+inline int SafeParticleModeOr( int requested ) {
+	if( requested == kRenderTransAlpha ) return kRenderTransAdd;
+	return requested;
+}
+}
+
 extern engine_studio_api_t IEngineStudio;
 
 extern Vector g_vPlayerVelocity;
