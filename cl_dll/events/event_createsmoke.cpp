@@ -30,10 +30,10 @@
 #include "com_model.h"
 
 // smoke grenade cloud count
-#define SMOKE_CLOUDS 22
+#define SMOKE_CLOUDS 40
 
 // spread radius (units) for the initial burst clouds
-#define SMOKE_SPREAD 170.0f
+#define SMOKE_SPREAD 260.0f
 
 // lifetime of a cloud, and when it starts to fade out
 #define SMOKE_LIFETIME 42.0f
@@ -61,7 +61,7 @@ void EV_CreateSmoke(event_args_s *args)
 				org.x += Com_RandomFloat(-SMOKE_SPREAD, SMOKE_SPREAD);
 				org.y += Com_RandomFloat(-SMOKE_SPREAD, SMOKE_SPREAD);
 			}
-			org.z += 45;
+			org.z += 60;
 
 			pTemp = gEngfuncs.pEfxAPI->CL_TempEntAllocNoModel( org );
 			if( pTemp )
@@ -107,7 +107,7 @@ void EV_CreateSmoke(event_args_s *args)
 				pTemp->entity.curstate.rendercolor.g = Com_RandomLong( 210, 230 );
 				pTemp->entity.curstate.rendercolor.b = Com_RandomLong( 210, 230 );
 				// classic puff size
-				pTemp->entity.curstate.scale = Com_RandomFloat( 4.5f, 6.0f );
+				pTemp->entity.curstate.scale = Com_RandomFloat( 6.5f, 9.0f );
 
 				pTemp->entity.baseline.origin.x = Com_RandomLong(-5, 5);
 				pTemp->entity.baseline.origin.y = Com_RandomLong(-5, 5);
