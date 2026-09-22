@@ -452,6 +452,71 @@ inline bool ImpactIsEnemy( int hitEntity )
 	return false;
 }
 
+
+// ============================================================================
+// Engine-builtin impact FX: sparks + debris + fire dlight.
+// Model-free only: never fails on missing .spr, never makes black squares.
+// Particle budget kept modest so automatic fire cannot exhaust the dlight
+// pool or tank the framerate.
+// ============================================================================
+inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char tex )
+{
+	Vector dir;
+	dir.x = normal.x;
+	dir.y = normal.y;
+	dir.z = normal.z;
+
+	Vector up;
+	up.x = 0.0f;
+	up.y = 0.0f;
+	up.z = 1.0f;
+
+	// ---- sparks: shower + two spray rings + two streak bursts ----
+	gEngfuncs.pEfxAPI->R_SparkShower( (float *)&pos );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 22, 80, 260 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 12, 50, 160 );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 18, 80, 300 );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 10, 50, 170 );
+
+	// ---- bullet impact particle burst ----
+	gEngfuncs.pEfxAPI->R_BulletImpactParticles( (float *)&pos );
+
+	// ---- debris streaks flying off the surface ----
+	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&dir, 4, 18, 190.0f, -180, 180 );
+	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&up,  4, 12, 150.0f,  -70, 150 );
+
+	// ---- specks / dust, count depends on material ----
+	int specks = 10;
+
+	if( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE || tex == CHAR_TEX_GRATE )
+		specks = 16;
+	else if( tex == CHAR_TEX_GLASS || tex == CHAR_TEX_COMPUTER )
+		specks = 18;
+	else if( tex == CHAR_TEX_WOOD || tex == CHAR_TEX_DIRT )
+		specks = 13;
+
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, specks );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up,  0, 7 );
+
+	// ---- single fire dlight per hit: keeps dlight pool healthy ----
+	float now = gEngfuncs.GetClientTime();
+
+	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
+
+	if( dl )
+	{
+		dl->origin[0] = pos.x;
+		dl->origin[1] = pos.y;
+		dl->origin[2] = pos.z + 6.0f;
+		dl->radius = 170.0f;
+		dl->color.r = (byte)255;
+		dl->color.g = (byte)215;
+		dl->color.b = (byte)150;
+		dl->decay = 520.0f;
+		dl->minlight = 18.0f;
+		dl->die = now + 0.11f;
+	}
+}
 inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool isSky )
 {
 #if CS16_IMPACT_FX_ON
@@ -480,6 +545,7 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 	ImpactEmitSparks( pos, normal, fx );
 	ImpactEmitDebris( pos, normal, fx, cTextureType );
 	ImpactEmitSmoke( pos, normal, fx, cTextureType );
+	ImpactEmitEngineFx( pos, normal, cTextureType );
 #endif
 }
 
