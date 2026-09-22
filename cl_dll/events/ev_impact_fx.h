@@ -23,7 +23,7 @@
 #endif
 
 #ifndef CS16_IMPACT_MAX_BLOOD
-#define CS16_IMPACT_MAX_BLOOD 100
+#define CS16_IMPACT_MAX_BLOOD 32
 #endif
 
 namespace CS16Fx
@@ -369,7 +369,7 @@ inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
 	if( spriteIdx <= 0 )
 		return;
 
-	int puffs = 85;
+	int puffs = 30;
 	if( puffs > CS16_IMPACT_MAX_BLOOD )
 		puffs = CS16_IMPACT_MAX_BLOOD;
 
@@ -462,80 +462,6 @@ inline bool ImpactIsEnemy( int hitEntity )
 // Debris uses R_RunParticleEffect (classic single-PIXEL particles, the tiny
 // "dots" CS players expect), NOT R_StreakSplash (which draws long streaks).
 // ============================================================================
-// ============================================================================
-// Per-material dot debris tuning.
-//
-// R_RunParticleEffect( org, dir, color, count ) takes a HOST PALETTE INDEX for
-// "color", not an RGB triple. R_LookupColor() converts real RGB into that
-// index, so each material can throw specks of its own colour: bright yellow
-// for metal, brown for wood/dirt, white for glass, red for flesh, and so on.
-// ============================================================================
-inline int ImpactDotColor( char tex )
-{
-	unsigned char r, g, b;
-
-	switch( tex )
-	{
-	case CHAR_TEX_METAL:    r = 255; g = 235; b = 150; break;  // yellow-white sparks
-	case CHAR_TEX_CONCRETE: r = 200; g = 200; b = 195; break;  // grey dust
-	case CHAR_TEX_DIRT:     r = 145; g = 115; b =  72; break;  // brown
-	case CHAR_TEX_VENT:     r = 190; g = 190; b = 190; break;  // light grey
-	case CHAR_TEX_GRATE:    r = 180; g = 180; b = 180; break;  // grey
-	case CHAR_TEX_TILE:     r = 230; g = 230; b = 220; break;  // off-white
-	case CHAR_TEX_SLOSH:    r = 150; g = 190; b = 220; break;  // pale blue
-	case CHAR_TEX_WOOD:     r = 165; g = 108; b =  52; break;  // brown
-	case CHAR_TEX_COMPUTER: r = 170; g = 170; b = 175; break;  // grey
-	case CHAR_TEX_GRASS:    r = 108; g = 165; b =  72; break;  // green
-	case CHAR_TEX_GLASS:    r = 235; g = 245; b = 255; break;  // white
-	case CHAR_TEX_SNOW:     r = 250; g = 250; b = 255; break;  // white
-	case CHAR_TEX_FLESH:    r = 200; g =  30; b =  30; break;  // red
-	default:                r = 200; g = 200; b = 195; break;
-	}
-
-	return gEngfuncs.pEfxAPI->R_LookupColor( r, g, b );
-}
-
-// How many specks each material throws. Harder / more brittle surfaces
-// shatter into more pieces.
-inline int ImpactDotCount( char tex )
-{
-	switch( tex )
-	{
-	case CHAR_TEX_GLASS:    return 34;
-	case CHAR_TEX_COMPUTER: return 32;
-	case CHAR_TEX_METAL:
-	case CHAR_TEX_GRATE:    return 30;
-	case CHAR_TEX_CONCRETE: return 26;
-	case CHAR_TEX_TILE:
-	case CHAR_TEX_VENT:     return 24;
-	case CHAR_TEX_WOOD:
-	case CHAR_TEX_DIRT:     return 20;
-	default:                return 16;
-	}
-}
-
-// Wider spray for hard surfaces (metal / glass / computer), narrow for soft.
-inline float ImpactDotKick( char tex )
-{
-	switch( tex )
-	{
-	case CHAR_TEX_METAL:
-	case CHAR_TEX_GRATE:
-	case CHAR_TEX_GLASS:
-	case CHAR_TEX_COMPUTER: return 1.5f;
-	default:                return 1.0f;
-	}
-}
-
-// ============================================================================
-// Engine-builtin impact FX: sparks + classic DOT debris + fire dlight.
-//
-// Model-free only: never fails on missing .spr, never makes black squares.
-//
-// Debris is pure R_RunParticleEffect (single-PIXEL particles, the tiny "dots"
-// CS players expect). No sprite debris here -- that layer was removed on
-// purpose, because its 0.8-1.9 s sprite lifetime drowned out the 0.1 s dots.
-// ============================================================================
 inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char tex )
 {
 	Vector dir;
@@ -559,38 +485,30 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	// ---- bullet impact particle burst ----
 	gEngfuncs.pEfxAPI->R_BulletImpactParticles( (float *)&pos );
 
-	// ---- CLASSIC DOT DEBRIS (single-PIXEL particles, per-material) ----
-	int   dotColor = ImpactDotColor( tex );
-	int   dots     = ImpactDotCount( tex );
-	float kick     = ImpactDotKick( tex );
+	// ---- CLASSIC DOT DEBRIS (tiny pixels, not streaks) ----
+	// count scales with material: harder surfaces throw more specks
+	int dots = 14;
+
+	if( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE || tex == CHAR_TEX_GRATE )
+		dots = 26;
+	else if( tex == CHAR_TEX_GLASS || tex == CHAR_TEX_COMPUTER )
+		dots = 30;
+	else if( tex == CHAR_TEX_WOOD || tex == CHAR_TEX_DIRT )
+		dots = 20;
+	else if( tex == CHAR_TEX_TILE || tex == CHAR_TEX_VENT )
+		dots = 24;
 
 	// main burst straight off the surface
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, dots );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, dots );
 
 	// second burst drifting upward (gives the debris some life)
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, dotColor, dots / 2 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, 0, dots / 2 );
 
 	// a few extra slow specks that hang in the air
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, 6 );
-
-	// a third, wider spray for hard surfaces (metal / concrete / glass)
-	if( kick > 1.0f )
-	{
-		Vector wide;
-		wide.x = dir.x + gEngfuncs.pfnRandomFloat( -0.45f, 0.45f );
-		wide.y = dir.y + gEngfuncs.pfnRandomFloat( -0.45f, 0.45f );
-		wide.z = dir.z + gEngfuncs.pfnRandomFloat( -0.20f, 0.45f );
-		gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&wide, dotColor, (int)( dots * 0.6f ) );
-	}
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, 6 );
 
 	// ---- single fire dlight per hit: keeps dlight pool healthy ----
-	static float s_lastImpactDlight = -1.0f;
 	float now = gEngfuncs.GetClientTime();
-
-	if( now >= s_lastImpactDlight && now - s_lastImpactDlight < 0.05f )
-		return;
-
-	s_lastImpactDlight = now;
 
 	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
 
@@ -627,13 +545,14 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 		if( !ImpactIsEnemy( entity ) )
 			return;
 
-		ImpactEmitBloodHeavy( pos, normal );
+		ImpactEmitBlood( pos, normal );
 		return;
 	}
 
 	const ImpactFxParams *fx = ImpactMaterial( cTextureType );
 
 	ImpactEmitSparks( pos, normal, fx );
+	ImpactEmitDebris( pos, normal, fx, cTextureType );
 	ImpactEmitSmoke( pos, normal, fx, cTextureType );
 	ImpactEmitEngineFx( pos, normal, cTextureType );
 #endif
