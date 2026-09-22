@@ -511,7 +511,7 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	static float s_lastImpactDlight = -1.0f;
 	float now = gEngfuncs.GetClientTime();
 
-	if( now - s_lastImpactDlight < 0.05f )
+	if( now >= s_lastImpactDlight && now - s_lastImpactDlight < 0.05f )
 		return;
 
 	s_lastImpactDlight = now;
