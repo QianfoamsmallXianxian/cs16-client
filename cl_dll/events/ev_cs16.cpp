@@ -24,7 +24,7 @@
 
 #include "eventscripts.h"
 #include "ev_hldm.h"
-
+#include "ev_impact_fx.h"
 #include "r_efx.h"
 #include "triangleapi.h"
 #include "event_api.h"
@@ -451,6 +451,7 @@ TEMPENTITY *EV_CS16Client_CreateSmoke( ESmoke type, Vector origin, Vector dir,
 
 void EV_HLDM_DecalGunshot(pmtrace_t *pTrace, int iBulletType, float scale, int r, int g, int b, bool bCreateWallPuff, bool bCreateSparks, char cTextureType, bool isSky)
 {
+    CS16Fx::ImpactFx( pTrace, iBulletType, cTextureType, isSky );
 	physent_t *pe;
 
 	if( isSky )
