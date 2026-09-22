@@ -1,10 +1,10 @@
 #ifndef CS16_EV_FX_HELPER_H
 #define CS16_EV_FX_HELPER_H
 
+#include "hud.h"
 #include "const.h"
 #include "r_efx.h"
 #include "event_api.h"
-#include "hud.h"
 
 #ifndef CS16_FX_NO_BLACK_SQUARE
 #define CS16_FX_NO_BLACK_SQUARE 1

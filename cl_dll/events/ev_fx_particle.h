@@ -1,6 +1,7 @@
 #ifndef CS16_EV_FX_PARTICLE_H
 #define CS16_EV_FX_PARTICLE_H
 
+#include "hud.h"
 #include "const.h"
 
 #ifndef CS16_FX_PARTICLE_NO_BLACK_SQUARE
