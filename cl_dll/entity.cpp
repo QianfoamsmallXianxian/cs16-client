@@ -26,6 +26,7 @@
 #include "ev_hldm.h"
 #include "particleman.h"
 #include "particleman_internal.h"
+#include "events/ev_muzzle_smoke.h"
 
 extern vec3_t v_origin;
 
@@ -301,32 +302,6 @@ void CL_MuzzleFlash( cl_entity_t *entity, vec3_t pos, int type )
 		pTemp->entity.angles[2] = Com_RandomLong( 0, 359 );
 	}
 
-	if( gHUD.cl_gunsmoke->value && EV_IsLocal( entity->index ))
-	{
-		Vector smoke_origin = pos;
-		Vector forward;
-
-		AngleVectors( v_angles, forward, NULL, NULL );
-
-		float scale = pTemp->entity.curstate.scale;
-
-		TEMPENTITY *te;
-		if( index == 1 )
-		{
-			te = EV_CS16Client_CreateSmoke( SMOKE_PISTOL, smoke_origin, forward, 0,  scale, 7,7,7, false, g_vPlayerVelocity );
-			if( te ) te->entity.angles[2] = pTemp->entity.angles[2];
-			te = EV_CS16Client_CreateSmoke( SMOKE_PISTOL, smoke_origin, forward, 20, scale + 0.1, 10,10,10, false, g_vPlayerVelocity );
-			if( te ) te->entity.angles[2] = pTemp->entity.angles[2];
-			te = EV_CS16Client_CreateSmoke( SMOKE_PISTOL, smoke_origin, forward, 40, scale, 13,13,13, false, g_vPlayerVelocity );
-			if( te ) te->entity.angles[2] = pTemp->entity.angles[2];
-		}
-		else
-		{
-			te = EV_CS16Client_CreateSmoke( SMOKE_RIFLE, smoke_origin, forward, 3, scale, 20, 20, 20, false, g_vPlayerVelocity );
-
-			if( te ) te->entity.angles[2] = pTemp->entity.angles[2];
-		}
-	}
 }
 
 /*
@@ -344,18 +319,22 @@ void DLLEXPORT HUD_StudioEvent( const struct mstudioevent_s *event, struct cl_en
 	{
 	case 5001:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[0], atoi( event->options) );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[0], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[0], atoi( event->options) );
 		break;
 	case 5011:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[1], atoi( event->options) );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[1], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[1], atoi( event->options) );
 		break;
 	case 5021:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[2], atoi( event->options) );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[2], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[2], atoi( event->options) );
 		break;
 	case 5031:
 		gEngfuncs.pEfxAPI->R_MuzzleFlash( (float *)&entity->attachment[3], atoi( event->options) );
+		CS16Fx::MuzzleSmokeEvent( entity, (const float *)&entity->attachment[3], ( entity == gEngfuncs.GetViewModel() ) ? true : false, 0.5f );
 		// CL_MuzzleFlash( entity, (float *)&entity->attachment[3], atoi( event->options) );
 		break;
 	case 5002:
