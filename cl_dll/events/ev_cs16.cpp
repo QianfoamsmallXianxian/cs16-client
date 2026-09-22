@@ -423,7 +423,7 @@ TEMPENTITY *EV_CS16Client_CreateSmoke( ESmoke type, Vector origin, Vector dir,
 		else
 			te->callback = EV_SmokeRise;
 		te->hitcallback = EV_HugWalls;
-		te->flags |= teflags | FTENT_CLIENTCUSTOM;
+		te->flags |= teflags | FTENT_CLIENTCUSTOM | FTENT_PERSIST;
 		te->entity.curstate.rendermode = kRenderTransAdd;
 		te->entity.curstate.rendercolor.r = r;
 		te->entity.curstate.rendercolor.g = g;

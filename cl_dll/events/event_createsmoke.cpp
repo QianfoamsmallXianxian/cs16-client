@@ -79,7 +79,7 @@ void EV_CreateSmoke(event_args_s *args)
 			if( pTemp )
 			{
 				// don't die when animation is ended
-				pTemp->flags |= (FTENT_SPRANIMATELOOP | FTENT_COLLIDEWORLD | FTENT_CLIENTCUSTOM);
+				pTemp->flags |= (FTENT_SPRANIMATELOOP | FTENT_COLLIDEWORLD | FTENT_CLIENTCUSTOM | FTENT_PERSIST);
 				pTemp->flags &= ~(FTENT_NOMODEL);
 				pTemp->die = gEngfuncs.GetClientTime() + 30.0f;
 				pTemp->callback = [](struct tempent_s *te, float frametime, float currenttime) -> void
