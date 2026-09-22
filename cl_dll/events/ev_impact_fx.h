@@ -233,7 +233,7 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 
 	int gray = 90 + ( ImpactTexSlot( tex ) * 11 ) % 60;
 
-	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? 4 : 3;
+	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? 7 : 6;
 
 	for( int i = 0; i < puffs; i++ )
 	{
@@ -250,7 +250,7 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 		te->entity.curstate.rendercolor.r = (unsigned char)gray;
 		te->entity.curstate.rendercolor.g = (unsigned char)gray;
 		te->entity.curstate.rendercolor.b = (unsigned char)gray;
-		te->entity.curstate.renderamt = 90 + i * 15;
+		te->entity.curstate.renderamt = 62 + i * 13;
 		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.9f, 1.9f );
 
 		Vector vel;
