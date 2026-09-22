@@ -23,7 +23,7 @@
 #endif
 
 #ifndef CS16_IMPACT_MAX_BLOOD
-#define CS16_IMPACT_MAX_BLOOD 32
+#define CS16_IMPACT_MAX_BLOOD 100
 #endif
 
 namespace CS16Fx
@@ -369,7 +369,7 @@ inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
 	if( spriteIdx <= 0 )
 		return;
 
-	int puffs = 30;
+	int puffs = 85;
 	if( puffs > CS16_IMPACT_MAX_BLOOD )
 		puffs = CS16_IMPACT_MAX_BLOOD;
 
@@ -546,7 +546,6 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 			return;
 
 		ImpactEmitBlood( pos, normal );
-		ImpactEmitBloodHeavy( pos, normal );
 		return;
 	}
 
