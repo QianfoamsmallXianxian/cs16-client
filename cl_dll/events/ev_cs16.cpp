@@ -569,6 +569,51 @@ EV_HLDM_FireBullets
 Go to the trouble of combining multiple pellets into a single damage call.
 ================
 */
+
+// ============================================================================
+// Muzzle-flash dynamic light.
+//
+// Works for BOTH view modes:
+//   1st person - the local player's own gun lights up the world around him
+//   3rd person - other players' guns light up too, so when you spectate or
+//                watch an enemy fire you see the flash
+//
+// Placed here, next to EV_HLDM_FireBullets, rather than in the 28 EV_FireXXX
+// files: every weapon that fires a bullet gets a light from one place.
+//
+// Rate-limited: full-auto at 600 RPM emits ~10 events/sec, and a 40 ms gate
+// keeps the engine dlight pool healthy without visible flicker. Remote
+// shooters key their light on their own entity index, so several players
+// firing at once each keep their own dlight slot.
+// ============================================================================
+inline void EV_MuzzleLight( int idx, const float *muzzle, bool isLocal )
+{
+	static float s_lastLocal = -1.0f;
+
+	float now = gEngfuncs.GetClientTime();
+
+	if( isLocal )
+	{
+		if( now - s_lastLocal < 0.04f )
+			return;
+		s_lastLocal = now;
+	}
+
+	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( isLocal ? 0 : ( idx + 1 ) );
+	if( !dl )
+		return;
+
+	dl->origin[0] = muzzle[0];
+	dl->origin[1] = muzzle[1];
+	dl->origin[2] = muzzle[2];
+	dl->radius = isLocal ? 220.0f : 190.0f;
+	dl->color.r = (byte)255;
+	dl->color.g = (byte)215;
+	dl->color.b = (byte)140;
+	dl->decay = 500.0f;
+	dl->minlight = 20.0f;
+	dl->die = now + 0.06f;
+}
 void EV_HLDM_FireBullets(int idx,
 						 float *forward, float *right, float *up,
 						 int cShots,
@@ -583,6 +628,9 @@ void EV_HLDM_FireBullets(int idx,
 	bool isSky;
 
 	EV_DescribeBulletTypeParameters( iBulletType, iPenetrationPower, flPenetrationDistance );
+
+	// muzzle-flash dynamic light (1st + 3rd person)
+	EV_MuzzleLight( idx, vecSrc, EV_IsLocal( idx ) != 0 );
 
 	for ( iShot = 1; iShot <= cShots; iShot++ )
 	{
