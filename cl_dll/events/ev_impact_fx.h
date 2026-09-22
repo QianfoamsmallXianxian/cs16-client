@@ -455,8 +455,10 @@ inline bool ImpactIsEnemy( int hitEntity )
 inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool isSky )
 {
 #if CS16_IMPACT_FX_ON
-	if( !tr || isSky )
-		return;
+	if( !tr ) return;
+	if( isSky ) return;
+	if( tr->fraction >= 1.0f ) return;
+	if( tr->allsolid ) return;
 
 	Vector pos = tr->endpos;
 	Vector normal = tr->plane.normal;
