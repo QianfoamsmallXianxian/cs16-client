@@ -473,11 +473,13 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	up.y = 0.0f;
 	up.z = 1.0f;
 
-	// ---- sparks: shower + spray + short streaks ----
+	// ---- sparks: shower + dense spray + SHORT streaks ----
 	gEngfuncs.pEfxAPI->R_SparkShower( (float *)&pos );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 20, 80, 260 );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 10, 50, 160 );
-	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 10, 80, 280 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 40, 80, 260 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 22, 50, 160 );
+	// low velocity => short streaks (was 280, which drew long lines)
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 24, 60, 140 );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 16, 40, 95 );
 
 	// ---- bullet impact particle burst ----
 	gEngfuncs.pEfxAPI->R_BulletImpactParticles( (float *)&pos );
