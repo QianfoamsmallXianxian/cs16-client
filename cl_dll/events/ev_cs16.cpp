@@ -24,7 +24,6 @@
 
 #include "eventscripts.h"
 #include "ev_hldm.h"
-#include "ev_impact_fx.h"
 
 #include "r_efx.h"
 #include "triangleapi.h"
@@ -677,7 +676,6 @@ void EV_HLDM_FireBullets(int idx,
 
 			// do damage, paint decals
 			EV_HLDM_DecalGunshot( &tr, iBulletType, 0, r_smoke, g_smoke, b_smoke, true, bSparks, cTextureType, isSky );
-			CS16Fx::ImpactFx( &tr, iBulletType, cTextureType, isSky );
 
 			if(/* iBulletType == BULLET_PLAYER_BUCKSHOT ||*/ iShotPenetration <= 0 )
 			{
@@ -697,7 +695,6 @@ void EV_HLDM_FireBullets(int idx,
 				gEngfuncs.pEventAPI->EV_PlayerTrace(vecShotSrc, vecSrc, 0, -1, &trOriginal);
 				if( !trOriginal.startsolid )
 					EV_HLDM_DecalGunshot( &trOriginal, iBulletType, 0, r_smoke, g_smoke, b_smoke, true, bSparks, cTextureType, isSky );
-				CS16Fx::ImpactFx( &trOriginal, iBulletType, cTextureType, isSky );
 			}
 		}
 		gEngfuncs.pEventAPI->EV_PopPMStates();
