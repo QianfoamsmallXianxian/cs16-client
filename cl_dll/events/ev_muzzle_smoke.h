@@ -26,11 +26,11 @@
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MIN
-#define CS16_MUZZLE_SMOKE_GRAY_MIN 60
+#define CS16_MUZZLE_SMOKE_GRAY_MIN 40
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MAX
-#define CS16_MUZZLE_SMOKE_GRAY_MAX 150
+#define CS16_MUZZLE_SMOKE_GRAY_MAX 90
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_DRIFT
@@ -259,7 +259,7 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	te->entity.curstate.rendercolor.r = (unsigned char)gray;
 	te->entity.curstate.rendercolor.g = (unsigned char)gray;
 	te->entity.curstate.rendercolor.b = (unsigned char)gray;
-	te->entity.curstate.renderamt = 165 + ( gray & 0x5F );
+	te->entity.curstate.renderamt = 55 + ( gray & 0x3F );
 	te->entity.curstate.scale = scale;
 
 	Vector drift;
