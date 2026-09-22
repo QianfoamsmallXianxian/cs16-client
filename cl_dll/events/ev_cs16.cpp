@@ -594,7 +594,7 @@ inline void EV_MuzzleLight( int idx, const float *muzzle, bool isLocal )
 
 	if( isLocal )
 	{
-		if( now - s_lastLocal < 0.04f )
+		if( now >= s_lastLocal && now - s_lastLocal < 0.04f )
 			return;
 		s_lastLocal = now;
 	}
