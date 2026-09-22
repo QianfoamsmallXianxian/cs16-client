@@ -173,7 +173,7 @@ inline bool MuzzleSmokeWeaponAllowed( const char *modelName )
 inline bool MuzzleSmokeLeftHanded()
 {
 	if( gHUD.cl_righthand )
-		return ( gHUD.cl_righthand.value == 0.0f );
+		return ( gHUD.cl_righthand->value == 0.0f );
 
 	return false;
 }
