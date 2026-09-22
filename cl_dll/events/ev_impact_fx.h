@@ -332,7 +332,7 @@ inline void ImpactEmitDebris( const Vector &pos, const Vector &normal, const Imp
 		if( !te )
 			continue;
 
-		te->entity.curstate.rendermode = kRenderTransAlpha;
+		te->entity.curstate.rendermode = kRenderTransAdd;
 		te->entity.curstate.rendercolor.r = (unsigned char)fx->debrisR;
 		te->entity.curstate.rendercolor.g = (unsigned char)fx->debrisG;
 		te->entity.curstate.rendercolor.b = (unsigned char)fx->debrisB;
@@ -396,7 +396,7 @@ inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
 		}
 		else
 		{
-			te->entity.curstate.rendermode = kRenderTransAlpha;
+			te->entity.curstate.rendermode = kRenderTransAdd;
 			te->entity.curstate.rendercolor.r = 135;
 			te->entity.curstate.rendercolor.g = 12;
 			te->entity.curstate.rendercolor.b = 12;
