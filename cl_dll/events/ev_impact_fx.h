@@ -462,6 +462,31 @@ inline bool ImpactIsEnemy( int hitEntity )
 // Debris uses R_RunParticleEffect (classic single-PIXEL particles, the tiny
 // "dots" CS players expect), NOT R_StreakSplash (which draws long streaks).
 // ============================================================================
+inline int ImpactDotColor( char tex )
+{
+	unsigned char r = 200, g = 200, b = 195;
+
+	switch( tex )
+	{
+	case CHAR_TEX_METAL:    r = 255; g = 235; b = 150; break;
+	case CHAR_TEX_CONCRETE: r = 200; g = 200; b = 195; break;
+	case CHAR_TEX_DIRT:     r = 145; g = 115; b =  72; break;
+	case CHAR_TEX_VENT:     r = 190; g = 190; b = 190; break;
+	case CHAR_TEX_GRATE:    r = 180; g = 180; b = 180; break;
+	case CHAR_TEX_TILE:     r = 230; g = 230; b = 220; break;
+	case CHAR_TEX_SLOSH:    r = 150; g = 190; b = 220; break;
+	case CHAR_TEX_WOOD:     r = 165; g = 108; b =  52; break;
+	case CHAR_TEX_COMPUTER: r = 170; g = 170; b = 175; break;
+	case CHAR_TEX_GRASS:    r = 108; g = 165; b =  72; break;
+	case CHAR_TEX_GLASS:    r = 235; g = 245; b = 255; break;
+	case CHAR_TEX_SNOW:     r = 250; g = 250; b = 255; break;
+	case CHAR_TEX_FLESH:    r = 200; g =  30; b =  30; break;
+	default: break;
+	}
+
+	return gEngfuncs.pEfxAPI->R_LookupColor( r, g, b );
+}
+
 inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char tex )
 {
 	Vector dir;
@@ -498,14 +523,16 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	else if( tex == CHAR_TEX_TILE || tex == CHAR_TEX_VENT )
 		dots = 24;
 
+	int dotColor = ImpactDotColor( tex );
+
 	// main burst straight off the surface
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, dots );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, dots );
 
 	// second burst drifting upward (gives the debris some life)
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, 0, dots / 2 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, dotColor, dots / 2 );
 
 	// a few extra slow specks that hang in the air
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, 0, 6 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, 6 );
 
 	// ---- single fire dlight per hit: keeps dlight pool healthy ----
 	float now = gEngfuncs.GetClientTime();
