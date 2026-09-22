@@ -18,7 +18,11 @@
 #endif
 
 #ifndef CS16_IMPACT_MAX_PARTICLES
-#define CS16_IMPACT_MAX_PARTICLES 40
+#define CS16_IMPACT_MAX_PARTICLES 48
+#endif
+
+#ifndef CS16_IMPACT_MAX_BLOOD
+#define CS16_IMPACT_MAX_BLOOD 32
 #endif
 
 namespace CS16Fx
@@ -29,71 +33,171 @@ struct ImpactFxParams
 	int   sparkCount;
 	float sparkSpeed;
 	int   sparkR, sparkG, sparkB;
+	float sparkScale;
 	int   debrisCount;
 	int   debrisR, debrisG, debrisB;
 	float debrisScale;
+	bool  debrisRotate;
 };
 
-inline int ImpactFindSprite( const char *a, const char *b, const char *c, const char *d )
+inline int ImpactFindSprite( const char *a, const char *b, const char *c )
 {
 	int idx = 0;
 
 	if( a ) { idx = gEngfuncs.pEventAPI->EV_FindModelIndex( a ); if( idx > 0 ) return idx; }
 	if( b ) { idx = gEngfuncs.pEventAPI->EV_FindModelIndex( b ); if( idx > 0 ) return idx; }
 	if( c ) { idx = gEngfuncs.pEventAPI->EV_FindModelIndex( c ); if( idx > 0 ) return idx; }
-	if( d ) { idx = gEngfuncs.pEventAPI->EV_FindModelIndex( d ); if( idx > 0 ) return idx; }
 
 	return 0;
 }
 
-inline int ImpactDebrisSprite( char tex )
+inline int ImpactTexSlot( char tex )
 {
 	switch( tex )
 	{
-	case CHAR_TEX_METAL:
-		return ImpactFindSprite( "sprites/debris1.spr", "sprites/metal1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_WOOD:
-		return ImpactFindSprite( "sprites/wood1.spr", "sprites/debris1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_GLASS:
-		return ImpactFindSprite( "sprites/glass1.spr", "sprites/debris1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_COMPUTER:
-		return ImpactFindSprite( "sprites/debris1.spr", "sprites/metal1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_GRASS:
-		return ImpactFindSprite( "sprites/grass1.spr", "sprites/debris1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_SNOW:
-		return ImpactFindSprite( "sprites/snow1.spr", "sprites/debris1.spr", "sprites/black_smoke1.spr", 0 );
-	case CHAR_TEX_SLOSH:
-		return ImpactFindSprite( "sprites/slosh1.spr", "sprites/debris1.spr", "sprites/black_smoke1.spr", 0 );
-	default:
-		return ImpactFindSprite( "sprites/debris1.spr", "sprites/black_smoke1.spr", 0, 0 );
+	case CHAR_TEX_METAL:    return 0;
+	case CHAR_TEX_CONCRETE: return 1;
+	case CHAR_TEX_DIRT:     return 2;
+	case CHAR_TEX_VENT:     return 3;
+	case CHAR_TEX_GRATE:    return 4;
+	case CHAR_TEX_TILE:     return 5;
+	case CHAR_TEX_SLOSH:    return 6;
+	case CHAR_TEX_WOOD:     return 7;
+	case CHAR_TEX_COMPUTER: return 8;
+	case CHAR_TEX_GRASS:    return 9;
+	case CHAR_TEX_GLASS:    return 10;
+	case CHAR_TEX_SNOW:     return 11;
+	case CHAR_TEX_FLESH:    return 12;
+	default:                return 1;
 	}
 }
 
-inline int ImpactBloodSprite()
+inline const char *ImpactDebrisNameA( char tex )
 {
-	return ImpactFindSprite( "sprites/bloodspray.spr", "sprites/blood.spr", "sprites/black_smoke1.spr", 0 );
+	switch( tex )
+	{
+	case CHAR_TEX_METAL:    return "sprites/metal1.spr";
+	case CHAR_TEX_WOOD:     return "sprites/wood1.spr";
+	case CHAR_TEX_GLASS:    return "sprites/glass1.spr";
+	case CHAR_TEX_GRASS:    return "sprites/grass1.spr";
+	case CHAR_TEX_SNOW:     return "sprites/snow1.spr";
+	case CHAR_TEX_SLOSH:    return "sprites/slosh1.spr";
+	default:                return "sprites/debris1.spr";
+	}
+}
+
+inline int ImpactDebrisSprite( char tex )
+{
+	static int  s_cache[16];
+	static bool s_ready = false;
+	static char s_lastMap[128] = { 0 };
+
+	const char *map = ( gEngfuncs.pfnGetLevelName ) ? gEngfuncs.pfnGetLevelName() : 0;
+
+	if( map && map[0] && strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
+	{
+		strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
+		s_lastMap[sizeof( s_lastMap ) - 1] = 0;
+		s_ready = false;
+	}
+
+	if( !s_ready )
+	{
+		for( int i = 0; i < 16; i++ )
+			s_cache[i] = 0;
+		s_ready = true;
+	}
+
+	int slot = ImpactTexSlot( tex );
+
+	if( slot < 0 || slot > 15 )
+		slot = 1;
+
+	if( s_cache[slot] > 0 )
+		return s_cache[slot];
+
+	int idx = ImpactFindSprite( ImpactDebrisNameA( tex ), "sprites/debris1.spr", "sprites/black_smoke1.spr" );
+
+	s_cache[slot] = idx;
+
+	return idx;
 }
 
 inline int ImpactSparkSprite()
 {
-	return ImpactFindSprite( "sprites/spark1.spr", "sprites/muzzleflash.spr", "sprites/black_smoke1.spr", 0 );
+	static int s_cache = -1;
+	static char s_lastMap[128] = { 0 };
+
+	const char *map = ( gEngfuncs.pfnGetLevelName ) ? gEngfuncs.pfnGetLevelName() : 0;
+
+	if( map && map[0] && strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
+	{
+		strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
+		s_lastMap[sizeof( s_lastMap ) - 1] = 0;
+		s_cache = -1;
+	}
+
+	if( s_cache <= 0 )
+		s_cache = ImpactFindSprite( "sprites/spark1.spr", "sprites/muzzleflash.spr", "sprites/black_smoke1.spr" );
+
+	return s_cache;
+}
+
+inline int ImpactBloodSprite()
+{
+	static int s_cache = -1;
+	static char s_lastMap[128] = { 0 };
+
+	const char *map = ( gEngfuncs.pfnGetLevelName ) ? gEngfuncs.pfnGetLevelName() : 0;
+
+	if( map && map[0] && strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
+	{
+		strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
+		s_lastMap[sizeof( s_lastMap ) - 1] = 0;
+		s_cache = -1;
+	}
+
+	if( s_cache <= 0 )
+		s_cache = ImpactFindSprite( "sprites/bloodspray.spr", "sprites/blood.spr", "sprites/black_smoke1.spr" );
+
+	return s_cache;
+}
+
+inline int ImpactSmokeSprite()
+{
+	static int s_cache = -1;
+	static char s_lastMap[128] = { 0 };
+
+	const char *map = ( gEngfuncs.pfnGetLevelName ) ? gEngfuncs.pfnGetLevelName() : 0;
+
+	if( map && map[0] && strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
+	{
+		strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
+		s_lastMap[sizeof( s_lastMap ) - 1] = 0;
+		s_cache = -1;
+	}
+
+	if( s_cache <= 0 )
+		s_cache = ImpactFindSprite( "sprites/gas_puff_01.spr", "sprites/black_smoke1.spr", 0 );
+
+	return s_cache;
 }
 
 inline const ImpactFxParams *ImpactMaterial( char tex )
 {
-	static const ImpactFxParams concrete = { 14, 1.20f, 255, 245, 210, 12, 150, 148, 140, 0.55f };
-	static const ImpactFxParams metal    = { 22, 1.60f, 255, 235, 150, 10, 120, 120, 135, 0.55f };
-	static const ImpactFxParams dirt     = {  0, 1.00f,   0,   0,   0, 14, 140, 110,  70, 0.65f };
-	static const ImpactFxParams vent     = {  8, 1.10f, 240, 230, 200, 10, 140, 140, 140, 0.55f };
-	static const ImpactFxParams grate    = { 12, 1.30f, 250, 240, 200, 10, 130, 130, 130, 0.55f };
-	static const ImpactFxParams tile     = { 10, 1.15f, 250, 245, 230, 12, 210, 210, 200, 0.55f };
-	static const ImpactFxParams slosh    = {  0, 1.00f,   0,   0,   0, 12, 100, 150, 210, 0.60f };
-	static const ImpactFxParams wood     = {  0, 1.00f,   0,   0,   0, 14, 160, 105,  50, 0.65f };
-	static const ImpactFxParams computer = { 20, 1.45f, 255, 240, 170, 12,  90,  90,  95, 0.55f };
-	static const ImpactFxParams grass    = {  0, 1.00f,   0,   0,   0, 12, 105, 160,  70, 0.60f };
-	static const ImpactFxParams glass    = { 14, 1.35f, 255, 255, 255, 16, 215, 235, 245, 0.45f };
-	static const ImpactFxParams snow     = {  0, 1.00f,   0,   0,   0, 12, 240, 240, 248, 0.55f };
-	static const ImpactFxParams flesh    = {  0, 1.00f,   0,   0,   0, 14, 180,  20,  20, 0.55f };
+	static const ImpactFxParams concrete = { 18, 1.30f, 255, 245, 210, 0.34f, 16, 155, 152, 144, 0.60f, true };
+	static const ImpactFxParams metal    = { 26, 1.75f, 255, 235, 150, 0.32f, 14, 125, 125, 140, 0.58f, true };
+	static const ImpactFxParams dirt     = {  0, 1.00f,   0,   0,   0, 0.00f, 18, 145, 115,  72, 0.68f, false };
+	static const ImpactFxParams vent     = { 12, 1.20f, 240, 230, 200, 0.30f, 14, 145, 145, 145, 0.58f, true };
+	static const ImpactFxParams grate    = { 16, 1.40f, 250, 240, 200, 0.32f, 14, 135, 135, 135, 0.58f, true };
+	static const ImpactFxParams tile     = { 14, 1.25f, 250, 245, 230, 0.32f, 16, 215, 215, 205, 0.58f, true };
+	static const ImpactFxParams slosh    = {  0, 1.00f,   0,   0,   0, 0.00f, 16, 105, 155, 215, 0.62f, false };
+	static const ImpactFxParams wood     = {  0, 1.00f,   0,   0,   0, 0.00f, 18, 165, 108,  52, 0.68f, true };
+	static const ImpactFxParams computer = { 24, 1.55f, 255, 240, 170, 0.32f, 16,  95,  95, 100, 0.58f, true };
+	static const ImpactFxParams grass    = {  0, 1.00f,   0,   0,   0, 0.00f, 16, 108, 165,  72, 0.62f, false };
+	static const ImpactFxParams glass    = { 18, 1.45f, 255, 255, 255, 0.30f, 20, 220, 238, 248, 0.50f, true };
+	static const ImpactFxParams snow     = {  0, 1.00f,   0,   0,   0, 0.00f, 16, 242, 242, 250, 0.58f, false };
+	static const ImpactFxParams flesh    = {  0, 1.00f,   0,   0,   0, 0.00f, 18, 175,  22,  22, 0.58f, false };
 
 	switch( tex )
 	{
@@ -114,6 +218,51 @@ inline const ImpactFxParams *ImpactMaterial( char tex )
 	}
 }
 
+inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const ImpactFxParams *fx, char tex )
+{
+	if( !fx )
+		return;
+
+	if( tex == CHAR_TEX_GLASS || tex == CHAR_TEX_GRASS || tex == CHAR_TEX_SNOW )
+		return;
+
+	int spriteIdx = ImpactSmokeSprite();
+	if( spriteIdx <= 0 )
+		return;
+
+	int gray = 90 + ( ImpactTexSlot( tex ) * 11 ) % 60;
+
+	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? 4 : 3;
+
+	for( int i = 0; i < puffs; i++ )
+	{
+		Vector spawn = pos;
+		spawn.x += normal.x * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
+		spawn.y += normal.y * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
+		spawn.z += normal.z * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
+
+		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&spawn, spriteIdx, 18.0f + i * 6.0f );
+		if( !te )
+			continue;
+
+		te->entity.curstate.rendermode = kRenderTransAdd;
+		te->entity.curstate.rendercolor.r = (unsigned char)gray;
+		te->entity.curstate.rendercolor.g = (unsigned char)gray;
+		te->entity.curstate.rendercolor.b = (unsigned char)gray;
+		te->entity.curstate.renderamt = 90 + i * 15;
+		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.9f, 1.9f );
+
+		Vector vel;
+		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( -18.0f, 18.0f );
+		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( -18.0f, 18.0f );
+		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( 4.0f, 26.0f );
+
+		te->entity.baseline.origin = vel;
+		te->flags |= FTENT_COLLIDEWORLD | FTENT_PERSIST;
+		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.35f, 0.85f );
+	}
+}
+
 inline void ImpactEmitSparks( const Vector &pos, const Vector &normal, const ImpactFxParams *fx )
 {
 	if( !fx || fx->sparkCount <= 0 )
@@ -123,23 +272,26 @@ inline void ImpactEmitSparks( const Vector &pos, const Vector &normal, const Imp
 	if( count > CS16_IMPACT_MAX_PARTICLES )
 		count = CS16_IMPACT_MAX_PARTICLES;
 
+	Vector streakPos = pos;
+
 	Vector dir;
 	dir.x = normal.x * normal.x * gEngfuncs.pfnRandomFloat( 4.0f, 12.0f );
 	dir.y = normal.y * normal.y * gEngfuncs.pfnRandomFloat( 4.0f, 12.0f );
 	dir.z = normal.z * normal.z * gEngfuncs.pfnRandomFloat( 4.0f, 12.0f );
 
-	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&dir, 4, count, dir.z * fx->sparkSpeed, -95.0f, 95.0f );
+	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&streakPos, (float *)&dir, 4, count, dir.z * fx->sparkSpeed, -110.0f, 110.0f );
 
 	int sparkIdx = ImpactSparkSprite();
 	if( sparkIdx <= 0 )
 		return;
 
-	int bursts = count / 4;
-	if( bursts < 2 ) bursts = 2;
+	int bursts = count / 3;
+	if( bursts < 3 ) bursts = 3;
+	if( bursts > 12 ) bursts = 12;
 
 	for( int i = 0; i < bursts; i++ )
 	{
-		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&pos, sparkIdx, 30.0f + i * 4.0f );
+		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&streakPos, sparkIdx, 30.0f + i * 4.0f );
 		if( !te )
 			continue;
 
@@ -147,17 +299,17 @@ inline void ImpactEmitSparks( const Vector &pos, const Vector &normal, const Imp
 		te->entity.curstate.rendercolor.r = (unsigned char)fx->sparkR;
 		te->entity.curstate.rendercolor.g = (unsigned char)fx->sparkG;
 		te->entity.curstate.rendercolor.b = (unsigned char)fx->sparkB;
-		te->entity.curstate.renderamt = 230;
-		te->entity.curstate.scale = 0.35f * gEngfuncs.pfnRandomFloat( 0.7f, 1.6f );
+		te->entity.curstate.renderamt = 235;
+		te->entity.curstate.scale = fx->sparkScale * gEngfuncs.pfnRandomFloat( 0.6f, 1.7f );
 
 		Vector vel;
-		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 40.0f, 110.0f ) + gEngfuncs.pfnRandomFloat( -120.0f, 120.0f );
-		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 40.0f, 110.0f ) + gEngfuncs.pfnRandomFloat( -120.0f, 120.0f );
-		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 40.0f, 110.0f ) + gEngfuncs.pfnRandomFloat( -30.0f, 130.0f );
+		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 50.0f, 130.0f ) + gEngfuncs.pfnRandomFloat( -140.0f, 140.0f );
+		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 50.0f, 130.0f ) + gEngfuncs.pfnRandomFloat( -140.0f, 140.0f );
+		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 50.0f, 130.0f ) + gEngfuncs.pfnRandomFloat( -35.0f, 155.0f );
 
 		te->entity.baseline.origin = vel;
 		te->flags |= FTENT_COLLIDEWORLD | FTENT_GRAVITY | FTENT_PERSIST;
-		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.25f, 0.55f );
+		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.22f, 0.60f );
 	}
 }
 
@@ -180,21 +332,33 @@ inline void ImpactEmitDebris( const Vector &pos, const Vector &normal, const Imp
 		if( !te )
 			continue;
 
-		te->entity.curstate.rendermode = kRenderTransAdd;
+		te->entity.curstate.rendermode = kRenderTransAlpha;
 		te->entity.curstate.rendercolor.r = (unsigned char)fx->debrisR;
 		te->entity.curstate.rendercolor.g = (unsigned char)fx->debrisG;
 		te->entity.curstate.rendercolor.b = (unsigned char)fx->debrisB;
-		te->entity.curstate.renderamt = 210;
-		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.55f, 1.45f );
+		te->entity.curstate.renderamt = 255;
+		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.55f, 1.5f );
 
 		Vector vel;
-		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 25.0f, 80.0f ) + gEngfuncs.pfnRandomFloat( -140.0f, 140.0f );
-		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 25.0f, 80.0f ) + gEngfuncs.pfnRandomFloat( -140.0f, 140.0f );
-		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 25.0f, 80.0f ) + gEngfuncs.pfnRandomFloat( 10.0f, 160.0f );
+		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 30.0f, 95.0f ) + gEngfuncs.pfnRandomFloat( -160.0f, 160.0f );
+		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 30.0f, 95.0f ) + gEngfuncs.pfnRandomFloat( -160.0f, 160.0f );
+		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 30.0f, 95.0f ) + gEngfuncs.pfnRandomFloat( 15.0f, 180.0f );
 
 		te->entity.baseline.origin = vel;
 		te->flags |= FTENT_COLLIDEWORLD | FTENT_GRAVITY | FTENT_PERSIST;
-		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.7f, 1.6f );
+
+		if( fx->debrisRotate )
+		{
+			te->entity.angles[0] = gEngfuncs.pfnRandomFloat( 0.0f, 360.0f );
+			te->entity.angles[1] = gEngfuncs.pfnRandomFloat( 0.0f, 360.0f );
+			te->entity.angles[2] = gEngfuncs.pfnRandomFloat( 0.0f, 360.0f );
+			te->entity.baseline.angles[0] = gEngfuncs.pfnRandomFloat( -220.0f, 220.0f );
+			te->entity.baseline.angles[1] = gEngfuncs.pfnRandomFloat( -220.0f, 220.0f );
+			te->entity.baseline.angles[2] = gEngfuncs.pfnRandomFloat( -220.0f, 220.0f );
+			te->flags |= FTENT_ROTATE;
+		}
+
+		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.8f, 1.9f );
 	}
 }
 
@@ -204,37 +368,64 @@ inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
 	if( spriteIdx <= 0 )
 		return;
 
-	const ImpactFxParams *fx = ImpactMaterial( CHAR_TEX_FLESH );
+	int puffs = 30;
+	if( puffs > CS16_IMPACT_MAX_BLOOD )
+		puffs = CS16_IMPACT_MAX_BLOOD;
 
-	for( int i = 0; i < 22; i++ )
+	for( int i = 0; i < puffs; i++ )
 	{
-		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&pos, spriteIdx, 22.0f + i * 2.0f );
+		Vector spawn = pos;
+		spawn.x += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
+		spawn.y += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
+		spawn.z += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
+
+		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&spawn, spriteIdx, 20.0f + i * 2.0f );
 		if( !te )
 			continue;
 
-		te->entity.curstate.rendermode = kRenderTransAlpha;
-		te->entity.curstate.rendercolor.r = (unsigned char)fx->debrisR;
-		te->entity.curstate.rendercolor.g = (unsigned char)fx->debrisG;
-		te->entity.curstate.rendercolor.b = (unsigned char)fx->debrisB;
-		te->entity.curstate.renderamt = 235;
-		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.5f, 1.5f );
+		bool bright = ( ( i & 1 ) != 0 );
+
+		if( bright )
+		{
+			te->entity.curstate.rendermode = kRenderTransAdd;
+			te->entity.curstate.rendercolor.r = 240;
+			te->entity.curstate.rendercolor.g = 45;
+			te->entity.curstate.rendercolor.b = 45;
+			te->entity.curstate.renderamt = 210;
+			te->entity.curstate.scale = gEngfuncs.pfnRandomFloat( 0.30f, 0.72f );
+		}
+		else
+		{
+			te->entity.curstate.rendermode = kRenderTransAlpha;
+			te->entity.curstate.rendercolor.r = 135;
+			te->entity.curstate.rendercolor.g = 12;
+			te->entity.curstate.rendercolor.b = 12;
+			te->entity.curstate.renderamt = 255;
+			te->entity.curstate.scale = gEngfuncs.pfnRandomFloat( 0.50f, 1.15f );
+		}
 
 		Vector vel;
-		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 20.0f, 70.0f ) + gEngfuncs.pfnRandomFloat( -170.0f, 170.0f );
-		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 20.0f, 70.0f ) + gEngfuncs.pfnRandomFloat( -170.0f, 170.0f );
-		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 20.0f, 70.0f ) + gEngfuncs.pfnRandomFloat( -10.0f, 150.0f );
+		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -190.0f, 190.0f );
+		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -190.0f, 190.0f );
+		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -15.0f, 165.0f );
 
 		te->entity.baseline.origin = vel;
 		te->flags |= FTENT_COLLIDEWORLD | FTENT_GRAVITY | FTENT_PERSIST;
-		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.5f, 1.1f );
+		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.45f, 1.20f );
 	}
 
-	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&pos, (float *)&normal, 4, 8, 60.0f, -60.0f, 60.0f );
+	Vector streakPos = pos;
+	Vector streakDir;
+	streakDir.x = normal.x;
+	streakDir.y = normal.y;
+	streakDir.z = normal.z + 0.25f;
+
+	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&streakPos, (float *)&streakDir, 4, 12, 80.0f, -85.0f, 85.0f );
 }
 
 inline bool ImpactIsEnemy( int hitEntity )
 {
-	if( hitEntity <= 0 )
+	if( hitEntity <= 0 || hitEntity > MAX_PLAYERS )
 		return true;
 
 	cl_entity_t *local = gEngfuncs.GetLocalPlayer();
@@ -242,6 +433,9 @@ inline bool ImpactIsEnemy( int hitEntity )
 		return true;
 
 	int localIdx = local->index;
+
+	if( localIdx < 0 || localIdx > MAX_PLAYERS )
+		return true;
 
 	int localTeam = g_PlayerExtraInfo[localIdx].teamnumber;
 	int hitTeam   = g_PlayerExtraInfo[hitEntity].teamnumber;
@@ -283,6 +477,7 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 
 	ImpactEmitSparks( pos, normal, fx );
 	ImpactEmitDebris( pos, normal, fx, cTextureType );
+	ImpactEmitSmoke( pos, normal, fx, cTextureType );
 #endif
 }
 
