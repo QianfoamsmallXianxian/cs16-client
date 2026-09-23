@@ -25,7 +25,7 @@
 #define CS16_IMPACT_MAX_BLOOD 32
 #endif
 #ifndef CS16_IMPACT_SMOKE_ON
-#define CS16_IMPACT_SMOKE_ON 1
+#define CS16_IMPACT_SMOKE_ON 0
 #endif
 
 #ifndef CS16_IMPACT_SMOKE_GRAY_MIN
@@ -106,6 +106,10 @@
 
 #ifndef CS16_IMPACT_DEBRIS_SCALE_MAX
 #define CS16_IMPACT_DEBRIS_SCALE_MAX 0.50f
+#endif
+
+#ifndef CS16_IMPACT_DEBRIS_ON
+#define CS16_IMPACT_DEBRIS_ON 0
 #endif
 
 
@@ -600,7 +604,9 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 	const ImpactFxParams *fx = ImpactMaterial( cTextureType );
 
 	ImpactEmitSparks( pos, normal, fx );
+	#if CS16_IMPACT_DEBRIS_ON
 	ImpactEmitDebris( pos, normal, fx, cTextureType );
+	#endif
 #if CS16_IMPACT_SMOKE_ON
 	ImpactEmitSmoke( pos, normal, fx, cTextureType );
 #endif
