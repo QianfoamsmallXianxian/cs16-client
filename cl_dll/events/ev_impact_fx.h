@@ -12,7 +12,7 @@
 #include "pm_materials.h"
 #include <math.h>
 #include <string.h>
-#include "ev_blood_fx.h"
+// blood module disabled: #include "ev_blood_fx.h"
 
 #ifndef CS16_IMPACT_FX_ON
 #define CS16_IMPACT_FX_ON 1
