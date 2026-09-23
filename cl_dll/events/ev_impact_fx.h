@@ -59,6 +59,42 @@
 #define CS16_IMPACT_SMOKE_SCALE_MAX 0.50f
 #endif
 
+#ifndef CS16_IMPACT_SMOKE_SPAWN_FWD
+#define CS16_IMPACT_SMOKE_SPAWN_FWD 2.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_SPAWN_JITTER
+#define CS16_IMPACT_SMOKE_SPAWN_JITTER 6.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_SPEED_MIN
+#define CS16_IMPACT_SMOKE_SPEED_MIN 8.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_SPEED_MAX
+#define CS16_IMPACT_SMOKE_SPEED_MAX 26.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_SPREAD
+#define CS16_IMPACT_SMOKE_SPREAD 18.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_LIFE_MIN
+#define CS16_IMPACT_SMOKE_LIFE_MIN 0.35f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_LIFE_MAX
+#define CS16_IMPACT_SMOKE_LIFE_MAX 0.85f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_FRAMERATE_BASE
+#define CS16_IMPACT_SMOKE_FRAMERATE_BASE 18.0f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_FRAMERATE_STEP
+#define CS16_IMPACT_SMOKE_FRAMERATE_STEP 6.0f
+#endif
+
 
 #ifndef CS16_IMPACT_DEBRIS_AMT
 #define CS16_IMPACT_DEBRIS_AMT 110
@@ -260,20 +296,27 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 	if( spriteIdx <= 0 )
 		return;
 
-	int gray = CS16_IMPACT_SMOKE_GRAY_MIN + ( ImpactTexSlot( tex ) * 11 ) % ( CS16_IMPACT_SMOKE_GRAY_MAX - CS16_IMPACT_SMOKE_GRAY_MIN + 1 );
+	int grayBase = CS16_IMPACT_SMOKE_GRAY_MIN + ( ImpactTexSlot( tex ) * 11 ) % ( CS16_IMPACT_SMOKE_GRAY_MAX - CS16_IMPACT_SMOKE_GRAY_MIN + 1 );
 
 	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? CS16_IMPACT_SMOKE_PUFFS_HARD : CS16_IMPACT_SMOKE_PUFFS_SOFT;
 
 	for( int i = 0; i < puffs; i++ )
 	{
 		Vector spawn = pos;
-		spawn.x += normal.x * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
-		spawn.y += normal.y * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
-		spawn.z += normal.z * 2.0f + gEngfuncs.pfnRandomFloat( -6.0f, 6.0f );
+		spawn.x += normal.x * CS16_IMPACT_SMOKE_SPAWN_FWD + gEngfuncs.pfnRandomFloat( -CS16_IMPACT_SMOKE_SPAWN_JITTER, CS16_IMPACT_SMOKE_SPAWN_JITTER );
+		spawn.y += normal.y * CS16_IMPACT_SMOKE_SPAWN_FWD + gEngfuncs.pfnRandomFloat( -CS16_IMPACT_SMOKE_SPAWN_JITTER, CS16_IMPACT_SMOKE_SPAWN_JITTER );
+		spawn.z += normal.z * CS16_IMPACT_SMOKE_SPAWN_FWD + gEngfuncs.pfnRandomFloat( -CS16_IMPACT_SMOKE_SPAWN_JITTER, CS16_IMPACT_SMOKE_SPAWN_JITTER );
 
-		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&spawn, spriteIdx, 18.0f + i * 6.0f );
+		float frame = CS16_IMPACT_SMOKE_FRAMERATE_BASE + i * CS16_IMPACT_SMOKE_FRAMERATE_STEP;
+
+		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&spawn, spriteIdx, frame );
 		if( !te )
 			continue;
+
+		int gray = grayBase + ( ( i * 5 ) % 12 );
+
+		if( gray < 0 )    gray = 0;
+		if( gray > 255 )  gray = 255;
 
 		te->entity.curstate.rendermode = kRenderTransAdd;
 		te->entity.curstate.rendercolor.r = (unsigned char)gray;
@@ -282,14 +325,16 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 		te->entity.curstate.renderamt = CS16_IMPACT_SMOKE_AMT_BASE + i * CS16_IMPACT_SMOKE_AMT_STEP;
 		te->entity.curstate.scale = gEngfuncs.pfnRandomFloat( CS16_IMPACT_SMOKE_SCALE_MIN, CS16_IMPACT_SMOKE_SCALE_MAX );
 
+		float speed = gEngfuncs.pfnRandomFloat( CS16_IMPACT_SMOKE_SPEED_MIN, CS16_IMPACT_SMOKE_SPEED_MAX );
+
 		Vector vel;
-		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( -18.0f, 18.0f );
-		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( -18.0f, 18.0f );
-		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( 4.0f, 26.0f );
+		vel.x = normal.x * speed + gEngfuncs.pfnRandomFloat( -CS16_IMPACT_SMOKE_SPREAD, CS16_IMPACT_SMOKE_SPREAD );
+		vel.y = normal.y * speed + gEngfuncs.pfnRandomFloat( -CS16_IMPACT_SMOKE_SPREAD, CS16_IMPACT_SMOKE_SPREAD );
+		vel.z = normal.z * speed + gEngfuncs.pfnRandomFloat( 4.0f, CS16_IMPACT_SMOKE_SPREAD );
 
 		te->entity.baseline.origin = vel;
-		te->flags |= FTENT_COLLIDEWORLD | FTENT_PERSIST;
-		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.35f, 0.85f );
+		te->flags |= FTENT_COLLIDEWORLD | FTENT_PERSIST | FTENT_FADEOUT;
+		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( CS16_IMPACT_SMOKE_LIFE_MIN, CS16_IMPACT_SMOKE_LIFE_MAX );
 	}
 }
 #endif
