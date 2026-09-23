@@ -31,6 +31,30 @@
 
 #ifndef CS16_MUZZLE_SMOKE_GRAY_MAX
 #define CS16_MUZZLE_SMOKE_GRAY_MAX 132
+
+#ifndef CS16_MUZZLE_SMOKE_AMT_BASE
+#define CS16_MUZZLE_SMOKE_AMT_BASE 22
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_AMT_MASK
+#define CS16_MUZZLE_SMOKE_AMT_MASK 0x1F
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_SCALE_MIN
+#define CS16_MUZZLE_SMOKE_SCALE_MIN 0.30f
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_SCALE_MAX
+#define CS16_MUZZLE_SMOKE_SCALE_MAX 0.95f
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_LIFE_BASE
+#define CS16_MUZZLE_SMOKE_LIFE_BASE 0.28f
+#endif
+
+#ifndef CS16_MUZZLE_SMOKE_LIFE_STEP
+#define CS16_MUZZLE_SMOKE_LIFE_STEP 0.55f
+#endif
 #endif
 
 #ifndef CS16_MUZZLE_SMOKE_DRIFT
@@ -259,7 +283,7 @@ inline void MuzzleSmokePuff( const Vector &origin, const Vector &forward,
 	te->entity.curstate.rendercolor.r = (unsigned char)gray;
 	te->entity.curstate.rendercolor.g = (unsigned char)gray;
 	te->entity.curstate.rendercolor.b = (unsigned char)gray;
-	te->entity.curstate.renderamt = 55 + ( gray & 0x3F );
+	te->entity.curstate.renderamt = CS16_MUZZLE_SMOKE_AMT_BASE + ( gray & CS16_MUZZLE_SMOKE_AMT_MASK );
 	te->entity.curstate.scale = scale;
 
 	Vector drift;
@@ -301,9 +325,9 @@ inline void MuzzleSmokeEmit( const Vector &muzzlePos, const Vector &forward,
 
 		int gray = MuzzleSmokeGray( t + step * 0.41f, seed + (float)i * 1.7f );
 
-		float sc = baseScale * ( 0.45f + step * 0.95f );
+		float sc = baseScale * ( CS16_MUZZLE_SMOKE_SCALE_MIN + step * CS16_MUZZLE_SMOKE_SCALE_MAX );
 
-		float life = 0.40f + step * 0.85f;
+		float life = CS16_MUZZLE_SMOKE_LIFE_BASE + step * CS16_MUZZLE_SMOKE_LIFE_STEP;
 
 		float framerate = 20.0f + step * 12.0f;
 
