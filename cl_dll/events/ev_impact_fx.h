@@ -46,23 +46,31 @@
 #endif
 
 #ifndef CS16_IMPACT_SMOKE_AMT_BASE
-#define CS16_IMPACT_SMOKE_AMT_BASE 62
+#define CS16_IMPACT_SMOKE_AMT_BASE 26
 #endif
 
 #ifndef CS16_IMPACT_SMOKE_AMT_STEP
-#define CS16_IMPACT_SMOKE_AMT_STEP 13
+#define CS16_IMPACT_SMOKE_AMT_STEP 6
+#ifndef CS16_IMPACT_SMOKE_SCALE_MIN
+#define CS16_IMPACT_SMOKE_SCALE_MIN 0.55f
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_SCALE_MAX
+#define CS16_IMPACT_SMOKE_SCALE_MAX 1.05f
+#endif
+
 #endif
 
 #ifndef CS16_IMPACT_DEBRIS_AMT
-#define CS16_IMPACT_DEBRIS_AMT 150
+#define CS16_IMPACT_DEBRIS_AMT 110
 #endif
 
 #ifndef CS16_IMPACT_DEBRIS_SCALE_MIN
-#define CS16_IMPACT_DEBRIS_SCALE_MIN 0.35f
+#define CS16_IMPACT_DEBRIS_SCALE_MIN 0.20f
 #endif
 
 #ifndef CS16_IMPACT_DEBRIS_SCALE_MAX
-#define CS16_IMPACT_DEBRIS_SCALE_MAX 0.95f
+#define CS16_IMPACT_DEBRIS_SCALE_MAX 0.50f
 #endif
 
 
@@ -292,7 +300,7 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 		te->entity.curstate.rendercolor.g = (unsigned char)gray;
 		te->entity.curstate.rendercolor.b = (unsigned char)gray;
 		te->entity.curstate.renderamt = CS16_IMPACT_SMOKE_AMT_BASE + i * CS16_IMPACT_SMOKE_AMT_STEP;
-		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.9f, 1.9f );
+		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( CS16_IMPACT_SMOKE_SCALE_MIN, CS16_IMPACT_SMOKE_SCALE_MAX );
 
 		Vector vel;
 		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 8.0f, 26.0f ) + gEngfuncs.pfnRandomFloat( -18.0f, 18.0f );
