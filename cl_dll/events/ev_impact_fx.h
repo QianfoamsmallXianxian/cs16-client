@@ -25,6 +25,46 @@
 #ifndef CS16_IMPACT_MAX_BLOOD
 #define CS16_IMPACT_MAX_BLOOD 32
 #endif
+#ifndef CS16_IMPACT_SMOKE_ON
+#define CS16_IMPACT_SMOKE_ON 1
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_GRAY_MIN
+#define CS16_IMPACT_SMOKE_GRAY_MIN 90
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_GRAY_MAX
+#define CS16_IMPACT_SMOKE_GRAY_MAX 150
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_PUFFS_HARD
+#define CS16_IMPACT_SMOKE_PUFFS_HARD 7
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_PUFFS_SOFT
+#define CS16_IMPACT_SMOKE_PUFFS_SOFT 6
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_AMT_BASE
+#define CS16_IMPACT_SMOKE_AMT_BASE 62
+#endif
+
+#ifndef CS16_IMPACT_SMOKE_AMT_STEP
+#define CS16_IMPACT_SMOKE_AMT_STEP 13
+#endif
+
+#ifndef CS16_IMPACT_DEBRIS_AMT
+#define CS16_IMPACT_DEBRIS_AMT 150
+#endif
+
+#ifndef CS16_IMPACT_DEBRIS_SCALE_MIN
+#define CS16_IMPACT_DEBRIS_SCALE_MIN 0.35f
+#endif
+
+#ifndef CS16_IMPACT_DEBRIS_SCALE_MAX
+#define CS16_IMPACT_DEBRIS_SCALE_MAX 0.95f
+#endif
+
 
 namespace CS16Fx
 {
@@ -219,6 +259,7 @@ inline const ImpactFxParams *ImpactMaterial( char tex )
 	}
 }
 
+#if CS16_IMPACT_SMOKE_ON
 inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const ImpactFxParams *fx, char tex )
 {
 	if( !fx )
@@ -231,9 +272,9 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 	if( spriteIdx <= 0 )
 		return;
 
-	int gray = 90 + ( ImpactTexSlot( tex ) * 11 ) % 60;
+	int gray = CS16_IMPACT_SMOKE_GRAY_MIN + ( ImpactTexSlot( tex ) * 11 ) % ( CS16_IMPACT_SMOKE_GRAY_MAX - CS16_IMPACT_SMOKE_GRAY_MIN + 1 );
 
-	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? 7 : 6;
+	int puffs = ( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE ) ? CS16_IMPACT_SMOKE_PUFFS_HARD : CS16_IMPACT_SMOKE_PUFFS_SOFT;
 
 	for( int i = 0; i < puffs; i++ )
 	{
@@ -250,7 +291,7 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 		te->entity.curstate.rendercolor.r = (unsigned char)gray;
 		te->entity.curstate.rendercolor.g = (unsigned char)gray;
 		te->entity.curstate.rendercolor.b = (unsigned char)gray;
-		te->entity.curstate.renderamt = 62 + i * 13;
+		te->entity.curstate.renderamt = CS16_IMPACT_SMOKE_AMT_BASE + i * CS16_IMPACT_SMOKE_AMT_STEP;
 		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.9f, 1.9f );
 
 		Vector vel;
@@ -263,6 +304,7 @@ inline void ImpactEmitSmoke( const Vector &pos, const Vector &normal, const Impa
 		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.35f, 0.85f );
 	}
 }
+#endif
 
 inline void ImpactEmitSparks( const Vector &pos, const Vector &normal, const ImpactFxParams *fx )
 {
@@ -337,8 +379,8 @@ inline void ImpactEmitDebris( const Vector &pos, const Vector &normal, const Imp
 		te->entity.curstate.rendercolor.r = (unsigned char)fx->debrisR;
 		te->entity.curstate.rendercolor.g = (unsigned char)fx->debrisG;
 		te->entity.curstate.rendercolor.b = (unsigned char)fx->debrisB;
-		te->entity.curstate.renderamt = 255;
-		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( 0.55f, 1.5f );
+		te->entity.curstate.renderamt = CS16_IMPACT_DEBRIS_AMT;
+		te->entity.curstate.scale = fx->debrisScale * gEngfuncs.pfnRandomFloat( CS16_IMPACT_DEBRIS_SCALE_MIN, CS16_IMPACT_DEBRIS_SCALE_MAX );
 
 		Vector vel;
 		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 30.0f, 95.0f ) + gEngfuncs.pfnRandomFloat( -160.0f, 160.0f );
