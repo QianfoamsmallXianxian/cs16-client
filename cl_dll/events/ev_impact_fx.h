@@ -12,7 +12,6 @@
 #include "pm_materials.h"
 #include <math.h>
 #include <string.h>
-#include "ev_blood_fx.h"
 
 #ifndef CS16_IMPACT_FX_ON
 #define CS16_IMPACT_FX_ON 1
@@ -51,6 +50,7 @@
 
 #ifndef CS16_IMPACT_SMOKE_AMT_STEP
 #define CS16_IMPACT_SMOKE_AMT_STEP 7
+#endif
 #ifndef CS16_IMPACT_SMOKE_SCALE_MIN
 #define CS16_IMPACT_SMOKE_SCALE_MIN 0.55f
 #endif
@@ -59,7 +59,6 @@
 #define CS16_IMPACT_SMOKE_SCALE_MAX 1.05f
 #endif
 
-#endif
 
 #ifndef CS16_IMPACT_DEBRIS_AMT
 #define CS16_IMPACT_DEBRIS_AMT 110
@@ -394,11 +393,6 @@ inline void ImpactEmitDebris( const Vector &pos, const Vector &normal, const Imp
 	}
 }
 
-inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
-{
-	( void )pos;
-	( void )normal;
-}
 
 inline bool ImpactIsEnemy( int hitEntity )
 {
@@ -510,8 +504,14 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	// a few extra slow specks that hang in the air
 	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, 6 );
 
-	// ---- single fire dlight per hit: keeps dlight pool healthy ----
+	// ---- single fire dlight per hit, throttled to avoid pool exhaustion ----
+	static float s_lastImpactDlight = -100.0f;
 	float now = gEngfuncs.GetClientTime();
+
+	if( now - s_lastImpactDlight < 0.05f )
+		return;
+
+	s_lastImpactDlight = now;
 
 	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
 
@@ -556,7 +556,9 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 
 	ImpactEmitSparks( pos, normal, fx );
 	ImpactEmitDebris( pos, normal, fx, cTextureType );
+#if CS16_IMPACT_SMOKE_ON
 	ImpactEmitSmoke( pos, normal, fx, cTextureType );
+#endif
 	ImpactEmitEngineFx( pos, normal, cTextureType );
 #endif
 }
