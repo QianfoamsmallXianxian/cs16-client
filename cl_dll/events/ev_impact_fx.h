@@ -192,25 +192,6 @@ inline int ImpactSparkSprite()
 	return s_cache;
 }
 
-inline int ImpactBloodSprite()
-{
-	static int s_cache = -1;
-	static char s_lastMap[128] = { 0 };
-
-	const char *map = ( gEngfuncs.pfnGetLevelName ) ? gEngfuncs.pfnGetLevelName() : 0;
-
-	if( map && map[0] && strncmp( s_lastMap, map, sizeof( s_lastMap ) - 1 ) )
-	{
-		strncpy( s_lastMap, map, sizeof( s_lastMap ) - 1 );
-		s_lastMap[sizeof( s_lastMap ) - 1] = 0;
-		s_cache = -1;
-	}
-
-	if( s_cache <= 0 )
-		s_cache = ImpactFindSprite( "sprites/bloodspray.spr", "sprites/blood.spr", "sprites/black_smoke1.spr" );
-
-	return s_cache;
-}
 
 inline int ImpactSmokeSprite()
 {
@@ -622,7 +603,7 @@ inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool is
 		if( !ImpactIsEnemy( entity ) )
 			return;
 
-		ImpactEmitBlood( pos, normal );
+		// blood effect removed
 		return;
 	}
 
