@@ -111,6 +111,106 @@
 #ifndef CS16_IMPACT_DEBRIS_ON
 #define CS16_IMPACT_DEBRIS_ON 0
 #endif
+#ifndef CS16_IMPACT_SPARK_COUNT_MAIN
+#define CS16_IMPACT_SPARK_COUNT_MAIN 40
+#endif
+
+#ifndef CS16_IMPACT_SPARK_VEL_MAIN_MIN
+#define CS16_IMPACT_SPARK_VEL_MAIN_MIN 80
+#endif
+
+#ifndef CS16_IMPACT_SPARK_VEL_MAIN_MAX
+#define CS16_IMPACT_SPARK_VEL_MAIN_MAX 260
+#endif
+
+#ifndef CS16_IMPACT_SPARK_COUNT_SUB
+#define CS16_IMPACT_SPARK_COUNT_SUB 22
+#endif
+
+#ifndef CS16_IMPACT_SPARK_VEL_SUB_MIN
+#define CS16_IMPACT_SPARK_VEL_SUB_MIN 50
+#endif
+
+#ifndef CS16_IMPACT_SPARK_VEL_SUB_MAX
+#define CS16_IMPACT_SPARK_VEL_SUB_MAX 160
+#endif
+
+#ifndef CS16_IMPACT_STREAK_COUNT_MAIN
+#define CS16_IMPACT_STREAK_COUNT_MAIN 24
+#endif
+
+#ifndef CS16_IMPACT_STREAK_VEL_MAIN_MIN
+#define CS16_IMPACT_STREAK_VEL_MAIN_MIN 60
+#endif
+
+#ifndef CS16_IMPACT_STREAK_VEL_MAIN_MAX
+#define CS16_IMPACT_STREAK_VEL_MAIN_MAX 140
+#endif
+
+#ifndef CS16_IMPACT_STREAK_COUNT_SUB
+#define CS16_IMPACT_STREAK_COUNT_SUB 16
+#endif
+
+#ifndef CS16_IMPACT_STREAK_VEL_SUB_MIN
+#define CS16_IMPACT_STREAK_VEL_SUB_MIN 40
+#endif
+
+#ifndef CS16_IMPACT_STREAK_VEL_SUB_MAX
+#define CS16_IMPACT_STREAK_VEL_SUB_MAX 95
+#endif
+
+#ifndef CS16_IMPACT_DOTS_DEFAULT
+#define CS16_IMPACT_DOTS_DEFAULT 14
+#endif
+
+#ifndef CS16_IMPACT_DOTS_HARD
+#define CS16_IMPACT_DOTS_HARD 26
+#endif
+
+#ifndef CS16_IMPACT_DOTS_BRITTLE
+#define CS16_IMPACT_DOTS_BRITTLE 30
+#endif
+
+#ifndef CS16_IMPACT_DOTS_SOFT
+#define CS16_IMPACT_DOTS_SOFT 20
+#endif
+
+#ifndef CS16_IMPACT_DOTS_MED
+#define CS16_IMPACT_DOTS_MED 24
+#endif
+
+#ifndef CS16_IMPACT_DOTS_EXTRA
+#define CS16_IMPACT_DOTS_EXTRA 6
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_ON
+#define CS16_IMPACT_DLIGHT_ON 1
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_THROTTLE
+#define CS16_IMPACT_DLIGHT_THROTTLE 0.05f
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_RADIUS
+#define CS16_IMPACT_DLIGHT_RADIUS 170.0f
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_DECAY
+#define CS16_IMPACT_DLIGHT_DECAY 520.0f
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_MINLIGHT
+#define CS16_IMPACT_DLIGHT_MINLIGHT 18.0f
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_LIFE
+#define CS16_IMPACT_DLIGHT_LIFE 0.11f
+#endif
+
+#ifndef CS16_IMPACT_DLIGHT_Z
+#define CS16_IMPACT_DLIGHT_Z 6.0f
+#endif
+
 
 
 namespace CS16Fx
@@ -518,65 +618,60 @@ inline void ImpactEmitEngineFx( const Vector &pos, const Vector &normal, char te
 	up.y = 0.0f;
 	up.z = 1.0f;
 
-	// ---- sparks: shower + dense spray + SHORT streaks ----
+	// ---- sparks: shower + spray + short streaks (all tunable) ----
 	gEngfuncs.pEfxAPI->R_SparkShower( (float *)&pos );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 40, 80, 260 );
-	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, 22, 50, 160 );
-	// low velocity => short streaks (was 280, which drew long lines)
-	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 24, 60, 140 );
-	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, 16, 40, 95 );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, CS16_IMPACT_SPARK_COUNT_MAIN, CS16_IMPACT_SPARK_VEL_MAIN_MIN, CS16_IMPACT_SPARK_VEL_MAIN_MAX );
+	gEngfuncs.pEfxAPI->R_SparkEffect( (float *)&pos, CS16_IMPACT_SPARK_COUNT_SUB, CS16_IMPACT_SPARK_VEL_SUB_MIN, CS16_IMPACT_SPARK_VEL_SUB_MAX );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, CS16_IMPACT_STREAK_COUNT_MAIN, CS16_IMPACT_STREAK_VEL_MAIN_MIN, CS16_IMPACT_STREAK_VEL_MAIN_MAX );
+	gEngfuncs.pEfxAPI->R_SparkStreaks( (float *)&pos, CS16_IMPACT_STREAK_COUNT_SUB, CS16_IMPACT_STREAK_VEL_SUB_MIN, CS16_IMPACT_STREAK_VEL_SUB_MAX );
 
 	// ---- bullet impact particle burst ----
 	gEngfuncs.pEfxAPI->R_BulletImpactParticles( (float *)&pos );
 
-	// ---- CLASSIC DOT DEBRIS (tiny pixels, not streaks) ----
-	// count scales with material: harder surfaces throw more specks
-	int dots = 14;
+	// ---- classic dot debris, per-material counts ----
+	int dots = CS16_IMPACT_DOTS_DEFAULT;
 
 	if( tex == CHAR_TEX_METAL || tex == CHAR_TEX_CONCRETE || tex == CHAR_TEX_GRATE )
-		dots = 26;
+		dots = CS16_IMPACT_DOTS_HARD;
 	else if( tex == CHAR_TEX_GLASS || tex == CHAR_TEX_COMPUTER )
-		dots = 30;
+		dots = CS16_IMPACT_DOTS_BRITTLE;
 	else if( tex == CHAR_TEX_WOOD || tex == CHAR_TEX_DIRT )
-		dots = 20;
+		dots = CS16_IMPACT_DOTS_SOFT;
 	else if( tex == CHAR_TEX_TILE || tex == CHAR_TEX_VENT )
-		dots = 24;
+		dots = CS16_IMPACT_DOTS_MED;
 
 	int dotColor = ImpactDotColor( tex );
 
-	// main burst straight off the surface
 	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, dots );
-
-	// second burst drifting upward (gives the debris some life)
 	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&up, dotColor, dots / 2 );
+	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, CS16_IMPACT_DOTS_EXTRA );
 
-	// a few extra slow specks that hang in the air
-	gEngfuncs.pEfxAPI->R_RunParticleEffect( (float *)&pos, (float *)&dir, dotColor, 6 );
-
-	// ---- single fire dlight per hit, throttled to avoid pool exhaustion ----
+#if CS16_IMPACT_DLIGHT_ON
+	// ---- single fire dlight per hit, throttled ----
 	static float s_lastImpactDlight = -100.0f;
 	float now = gEngfuncs.GetClientTime();
 
-	if( now - s_lastImpactDlight < 0.05f )
-		return;
-
-	s_lastImpactDlight = now;
-
-	dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
-
-	if( dl )
+	if( now - s_lastImpactDlight >= CS16_IMPACT_DLIGHT_THROTTLE )
 	{
-		dl->origin[0] = pos.x;
-		dl->origin[1] = pos.y;
-		dl->origin[2] = pos.z + 6.0f;
-		dl->radius = 170.0f;
-		dl->color.r = (byte)255;
-		dl->color.g = (byte)215;
-		dl->color.b = (byte)150;
-		dl->decay = 520.0f;
-		dl->minlight = 18.0f;
-		dl->die = now + 0.11f;
+		s_lastImpactDlight = now;
+
+		dlight_t *dl = gEngfuncs.pEfxAPI->CL_AllocDlight( 0 );
+
+		if( dl )
+		{
+			dl->origin[0] = pos.x;
+			dl->origin[1] = pos.y;
+			dl->origin[2] = pos.z + CS16_IMPACT_DLIGHT_Z;
+			dl->radius = CS16_IMPACT_DLIGHT_RADIUS;
+			dl->color.r = (byte)255;
+			dl->color.g = (byte)215;
+			dl->color.b = (byte)150;
+			dl->decay = CS16_IMPACT_DLIGHT_DECAY;
+			dl->minlight = CS16_IMPACT_DLIGHT_MINLIGHT;
+			dl->die = now + CS16_IMPACT_DLIGHT_LIFE;
+		}
 	}
+#endif
 }
 inline void ImpactFx( pmtrace_t *tr, int iBulletType, char cTextureType, bool isSky )
 {
