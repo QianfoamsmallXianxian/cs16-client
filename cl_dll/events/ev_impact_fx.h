@@ -46,11 +46,11 @@
 #endif
 
 #ifndef CS16_IMPACT_SMOKE_AMT_BASE
-#define CS16_IMPACT_SMOKE_AMT_BASE 26
+#define CS16_IMPACT_SMOKE_AMT_BASE 32
 #endif
 
 #ifndef CS16_IMPACT_SMOKE_AMT_STEP
-#define CS16_IMPACT_SMOKE_AMT_STEP 6
+#define CS16_IMPACT_SMOKE_AMT_STEP 7
 #ifndef CS16_IMPACT_SMOKE_SCALE_MIN
 #define CS16_IMPACT_SMOKE_SCALE_MIN 0.55f
 #endif
@@ -396,63 +396,8 @@ inline void ImpactEmitDebris( const Vector &pos, const Vector &normal, const Imp
 
 inline void ImpactEmitBlood( const Vector &pos, const Vector &normal )
 {
-	int spriteIdx = ImpactBloodSprite();
-	if( spriteIdx <= 0 )
-		return;
-
-	int puffs = 30;
-	if( puffs > CS16_IMPACT_MAX_BLOOD )
-		puffs = CS16_IMPACT_MAX_BLOOD;
-
-	for( int i = 0; i < puffs; i++ )
-	{
-		Vector spawn = pos;
-		spawn.x += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
-		spawn.y += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
-		spawn.z += gEngfuncs.pfnRandomFloat( -5.0f, 5.0f );
-
-		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( (float *)&spawn, spriteIdx, 20.0f + i * 2.0f );
-		if( !te )
-			continue;
-
-		bool bright = ( ( i & 1 ) != 0 );
-
-		if( bright )
-		{
-			te->entity.curstate.rendermode = kRenderTransAdd;
-			te->entity.curstate.rendercolor.r = 240;
-			te->entity.curstate.rendercolor.g = 45;
-			te->entity.curstate.rendercolor.b = 45;
-			te->entity.curstate.renderamt = 210;
-			te->entity.curstate.scale = gEngfuncs.pfnRandomFloat( 0.30f, 0.72f );
-		}
-		else
-		{
-			te->entity.curstate.rendermode = kRenderTransAdd;
-			te->entity.curstate.rendercolor.r = 135;
-			te->entity.curstate.rendercolor.g = 12;
-			te->entity.curstate.rendercolor.b = 12;
-			te->entity.curstate.renderamt = 255;
-			te->entity.curstate.scale = gEngfuncs.pfnRandomFloat( 0.50f, 1.15f );
-		}
-
-		Vector vel;
-		vel.x = normal.x * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -190.0f, 190.0f );
-		vel.y = normal.y * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -190.0f, 190.0f );
-		vel.z = normal.z * gEngfuncs.pfnRandomFloat( 25.0f, 85.0f ) + gEngfuncs.pfnRandomFloat( -15.0f, 165.0f );
-
-		te->entity.baseline.origin = vel;
-		te->flags |= FTENT_COLLIDEWORLD | FTENT_GRAVITY | FTENT_PERSIST;
-		te->die = gEngfuncs.GetClientTime() + gEngfuncs.pfnRandomFloat( 0.45f, 1.20f );
-	}
-
-	Vector streakPos = pos;
-	Vector streakDir;
-	streakDir.x = normal.x;
-	streakDir.y = normal.y;
-	streakDir.z = normal.z + 0.25f;
-
-	gEngfuncs.pEfxAPI->R_StreakSplash( (float *)&streakPos, (float *)&streakDir, 4, 12, 80.0f, -85.0f, 85.0f );
+	( void )pos;
+	( void )normal;
 }
 
 inline bool ImpactIsEnemy( int hitEntity )
