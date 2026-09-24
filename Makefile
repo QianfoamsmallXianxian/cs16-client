@@ -4,6 +4,6 @@ SRCS = c4_fx_mod.cpp shake_hook.cpp explosion_hook.cpp
 OBJS = $(SRCS:.cpp=.o)
 all: $(OBJS)
 %.o: %.cpp
-$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(CXXFLAGS) $< -o $@
 clean:
 rm -f $(OBJS)
