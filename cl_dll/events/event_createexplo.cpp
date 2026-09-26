@@ -33,11 +33,11 @@ extern void V_AddExploShake( float amplitude, float duration );
 #endif
 
 #ifndef CS16_EXPLO_SPRITE_DEBRIS_ON
-#define CS16_EXPLO_SPRITE_DEBRIS_ON 1
+#define CS16_EXPLO_SPRITE_DEBRIS_ON 0
 #endif
 
 #ifndef CS16_EXPLO_DUST_ON
-#define CS16_EXPLO_DUST_ON 1
+#define CS16_EXPLO_DUST_ON 0
 #endif
 
 #ifndef CS16_EXPLO_DLIGHT_ON
@@ -93,7 +93,7 @@ extern void V_AddExploShake( float amplitude, float duration );
 #endif
 
 #ifndef CS16_EXPLO_DOT_GROUND_MAX
-#define CS16_EXPLO_DOT_GROUND_MAX 18
+#define CS16_EXPLO_DOT_GROUND_MAX 45
 #endif
 
 #ifndef CS16_EXPLO_DOT_AIR_LOOPS
@@ -105,7 +105,7 @@ extern void V_AddExploShake( float amplitude, float duration );
 #endif
 
 #ifndef CS16_EXPLO_DOT_AIR_MAX
-#define CS16_EXPLO_DOT_AIR_MAX 14
+#define CS16_EXPLO_DOT_AIR_MAX 32
 #endif
 
 #ifndef CS16_EXPLO_DOT_COLOR_R
