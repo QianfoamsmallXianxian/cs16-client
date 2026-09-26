@@ -227,7 +227,8 @@ static void ExploEmitSpriteDebris( const vec3_t org, const vec3_t up )
 
 	for( int i = 0; i < CS16_EXPLO_SPRITE_COUNT; i++ )
 	{
-		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( org, spriteIdx, 16.0f + i * 3.0f );
+		vec3_t spriteOrg = org;
+		TEMPENTITY *te = gEngfuncs.pEfxAPI->R_DefaultSprite( spriteOrg, spriteIdx, 16.0f + i * 3.0f );
 		if( !te )
 			continue;
 
