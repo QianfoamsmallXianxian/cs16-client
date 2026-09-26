@@ -11,6 +11,9 @@
 #include "pmtrace.h"
 #include <string.h>
 
+// CS16: client-side explosion screen shake (implemented in cl_dll/view.cpp)
+extern void V_AddExploShake( float amplitude, float duration );
+
 // Tunables: every hard-coded value is now a macro.
 
 #ifndef CS16_EXPLO_FLASH_ON
@@ -277,6 +280,29 @@ void EV_CreateExplo(event_args_s *args)
 	org[0] = args->origin[0];
 	org[1] = args->origin[1];
 	org[2] = args->origin[2];
+
+	// CS16: shake the local view when the explosion goes off nearby.
+	// Vanilla CS 1.6 never sends a ScreenShake usermsg for the C4, so this
+	// has to be done client-side in the createexplo event.
+	{
+		struct cl_entity_s *local = gEngfuncs.GetLocalPlayer();
+
+		if( local )
+		{
+			float dx = org[0] - local->origin[0];
+			float dy = org[1] - local->origin[1];
+			float dz = org[2] - local->origin[2];
+
+			const float radius = 900.0f;
+			float dist2 = dx * dx + dy * dy + dz * dz;
+
+			if( dist2 < radius * radius )
+			{
+				float falloff = 1.0f - dist2 / ( radius * radius );
+				V_AddExploShake( 5.0f * falloff, 0.55f );
+			}
+		}
+	}
 
 	vec3_t traceEnd;
 	traceEnd[0] = org[0];
