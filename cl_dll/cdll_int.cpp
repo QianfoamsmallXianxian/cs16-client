@@ -36,6 +36,7 @@
 #include "environment.h"
 
 #include "cl_util.h"
+#include "events.h"
 
 cl_enginefunc_t		gEngfuncs  = { };
 render_api_t		gRenderAPI = { };
@@ -111,6 +112,7 @@ int DLLEXPORT Initialize( cl_enginefunc_t *pEnginefuncs, int iVersion )
 	sscanf( CVAR_GET_STRING( "host_ver" ), "%d", &g_iXash );
 
 	Game_HookEvents();
+	gEngfuncs.pfnHookEvent( "events/createexplo.sc", EV_CreateExplo );
 	CL_LoadParticleMan();
 
 	return 1;
