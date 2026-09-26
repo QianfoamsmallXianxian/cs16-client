@@ -61,6 +61,34 @@ extern cvar_t	*cl_vsmoothing;
 #define CAM_MODE_FOCUS		2
 
 vec3_t v_origin, v_angles, v_cl_angles, v_sim_org, v_lastAngles, ev_punchangle;
+
+// ============================================================================
+// CS16: client-side explosion screen shake.
+// The engine only shakes the view when the *server* sends a ScreenShake user
+// message, which vanilla CS 1.6 does not do for the C4. So keep a short-lived
+// shake state here and feed it from the client-side createexplo event
+// (see cl_dll/events/event_createexplo.cpp).
+// ============================================================================
+float g_C4ShakeAmp  = 0.0f;  // peak amplitude in degrees
+float g_C4ShakeTime = 0.0f;  // remaining time
+float g_C4ShakeDur  = 0.0f;  // total duration (for falloff)
+
+void V_AddExploShake( float amplitude, float duration )
+{
+	if( amplitude <= 0.0f || duration <= 0.0f )
+		return;
+
+	if( amplitude > 14.0f ) amplitude = 14.0f;
+	if( duration > 2.0f )  duration = 2.0f;
+
+	// keep the strongest pending shake, don't stack
+	if( g_C4ShakeTime <= 0.0f || amplitude >= g_C4ShakeAmp )
+	{
+		g_C4ShakeAmp  = amplitude;
+		g_C4ShakeDur  = duration;
+		g_C4ShakeTime = duration;
+	}
+}
 Vector dead_viewangles( 0, 0, 0 ); // fake viewangles, for fixing
 float  v_frametime, v_lastDistance;
 float  v_cameraRelaxAngle	= 5.0f;
@@ -729,6 +757,32 @@ void V_CalcNormalRefdef ( struct ref_params_s *pparams )
 
 	gEngfuncs.V_CalcShake();
 	gEngfuncs.V_ApplyShake( pparams->vieworg, pparams->viewangles, 1.0 );
+
+	// --- CS16: apply the client-side C4 explosion shake ---
+	if( g_C4ShakeTime > 0.0f && g_C4ShakeDur > 0.0f )
+	{
+		g_C4ShakeTime -= pparams->frametime;
+
+		float ratio = g_C4ShakeTime / g_C4ShakeDur;
+		if( ratio < 0.0f ) ratio = 0.0f;
+
+		float amp = g_C4ShakeAmp * ratio;
+
+		if( amp > 0.0f )
+		{
+			Vector shake;
+			shake.x = gEngfuncs.pfnRandomFloat( -amp, amp );
+			shake.y = gEngfuncs.pfnRandomFloat( -amp, amp );
+			shake.z = gEngfuncs.pfnRandomFloat( -amp * 0.5f, amp * 0.5f );
+
+			pparams->viewangles = pparams->viewangles + shake;
+			pparams->vieworg    = pparams->vieworg + shake * 0.25f;
+		}
+	}
+	else
+	{
+		g_C4ShakeAmp = 0.0f;
+	}
 
 	// never let view origin sit exactly on a node line, because a water plane can
 	// disappear when viewed with the eye exactly on it.
